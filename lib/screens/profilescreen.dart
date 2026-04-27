@@ -366,9 +366,9 @@ class ProfileScreen extends StatelessWidget {
                       padding: EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
-                        color: color.primary.withAlpha(30),
+                        color: Colors.purple.withAlpha(30),
                       ),
-                      child: Icon(Icons.dark_mode, color: color.primary),
+                      child: const Icon(Icons.dark_mode, color: Colors.purple),
                     ),
                   ),
                   Consumer<SettingsProvider>(
@@ -382,9 +382,9 @@ class ProfileScreen extends StatelessWidget {
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20),
-                              color: color.primary.withAlpha(30),
+                              color: Colors.blue.withAlpha(30),
                             ),
-                            child: Icon(Icons.deblur, color: color.primary),
+                            child: const Icon(Icons.deblur, color: Colors.blue),
                           ),
                           title: const Text("Default Pdf Compression"),
                           trailing: DropdownButton<CompressionLevel>(
@@ -429,9 +429,9 @@ class ProfileScreen extends StatelessWidget {
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20),
-                              color: color.primary.withAlpha(30),
+                              color: Colors.green.withAlpha(30),
                             ),
-                            child: Icon(Icons.storage, color: color.primary),
+                            child: const Icon(Icons.storage, color: Colors.green),
                           ),
                           title: const Text("Storage Location"),
                           subtitle: Text(
@@ -474,6 +474,7 @@ class ProfileScreen extends StatelessWidget {
                       color,
                       Icons.star,
                       Icons.open_in_new,
+                      Colors.amber,
                     ),
                   ),
                   GestureDetector(
@@ -486,6 +487,7 @@ class ProfileScreen extends StatelessWidget {
                       color,
                       Icons.apps,
                       Icons.open_in_new,
+                      Colors.indigo,
                     ),
                   ),
                   GestureDetector(
@@ -498,6 +500,7 @@ class ProfileScreen extends StatelessWidget {
                       color,
                       Icons.privacy_tip_outlined,
                       Icons.arrow_forward_ios,
+                      Colors.teal,
                     ),
                   ),
                   //   _tile(
@@ -554,6 +557,7 @@ class ProfileScreen extends StatelessWidget {
     AppColors color,
     IconData? icon1,
     IconData? icon2,
+    Color iconColor,
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
@@ -564,9 +568,9 @@ class ProfileScreen extends StatelessWidget {
           padding: EdgeInsets.all(10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: color.primary.withAlpha(30),
+            color: iconColor.withAlpha(30),
           ),
-          child: Icon(icon1, color: color.primary),
+          child: Icon(icon1, color: iconColor),
         ),
         title: Text(title),
         trailing: trailingText != null

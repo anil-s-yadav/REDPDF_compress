@@ -51,8 +51,7 @@ class PdfProvider with ChangeNotifier {
           await targetDir.create(recursive: true);
         }
 
-        final fileName = inputFile.uri.pathSegments.last;
-        final finalPath = '${targetDir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}_$fileName';
+        final finalPath = '${targetDir.path}/redpdf_comprss_${DateTime.now().millisecondsSinceEpoch}.pdf';
         
         final savedFile = await tempFile.copy(finalPath);
         return savedFile;

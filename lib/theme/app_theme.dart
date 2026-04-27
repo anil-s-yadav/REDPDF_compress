@@ -62,7 +62,7 @@ class AppThemeColors {
   /// 🔴 PDF LIGHT
   static const pdfLight = AppColors(
     primary: Color(0xFFFF4E50),
-    bg: Color(0xFFFFF5F5),
+    bg: Color.fromARGB(255, 250, 245, 245),
     text: Color(0xFF1E1E1E),
     light: Color(0xFFFFEAEA),
     card: Colors.white,

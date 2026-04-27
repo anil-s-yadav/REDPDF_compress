@@ -109,83 +109,85 @@ class _FilesScreenState extends State<FilesScreen> {
               constraints: const BoxConstraints(maxWidth: 600),
               child: Column(
                 children: [
-              _header(),
-              _searchBar(pdfColor),
-              SizedBox(height: 10),
-              TabBar(
-                isScrollable: true,
-                labelColor: pdfColor.primary,
-                unselectedLabelColor: Colors.grey,
-                indicatorColor: pdfColor.primary,
-                dividerColor: Colors.transparent,
-                tabAlignment: TabAlignment.start,
-                tabs: const [
-                  Tab(text: "Compressed Files"),
-                  Tab(text: "Device PDFs"),
-                ],
-              ),
+                  _header(),
+                  _searchBar(pdfColor),
+                  SizedBox(height: 10),
+                  TabBar(
+                    isScrollable: true,
+                    labelColor: pdfColor.primary,
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: pdfColor.primary,
+                    dividerColor: Colors.transparent,
+                    tabAlignment: TabAlignment.start,
+                    tabs: const [
+                      Tab(text: "Compressed Files"),
+                      Tab(text: "Device PDFs"),
+                    ],
+                  ),
 
-              const SizedBox(height: 10),
+                  const SizedBox(height: 10),
 
-              ///  FIXED
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    Consumer<HistoryProvider>(
-                      builder: (context, history, _) {
-                        final items = history.items
-                            .where((e) {
-                              if (_query.trim().isEmpty) return true;
-                              return e.title.toLowerCase().contains(
-                                _query.trim().toLowerCase(),
+                  ///  FIXED
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        Consumer<HistoryProvider>(
+                          builder: (context, history, _) {
+                            final items = history.items
+                                .where((e) {
+                                  if (_query.trim().isEmpty) return true;
+                                  return e.title.toLowerCase().contains(
+                                    _query.trim().toLowerCase(),
+                                  );
+                                })
+                                .toList(growable: false);
+
+                            if (!history.isLoaded) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
                               );
-                            })
-                            .toList(growable: false);
-
-                        if (!history.isLoaded) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-                        if (items.isEmpty) {
-                          return Center(
-                            child: Text(
-                              _query.trim().isEmpty
-                                  ? "No compressed files yet."
-                                  : "No results.",
-                              style: const TextStyle(color: Colors.grey),
-                            ),
-                          );
-                        }
-
-                        String? lastSection;
-                        return ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: items.length,
-                          itemBuilder: (context, i) {
-                            final item = items[i];
-                            final section = _sectionFor(item.createdAt);
-                            final showHeader = lastSection != section;
-                            lastSection = section;
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (showHeader) _sectionTitle(section),
-                                _historyCard(
-                                  item: item,
-                                  pdfColor: pdfColor,
-                                  isDark: isDark,
+                            }
+                            if (items.isEmpty) {
+                              return Center(
+                                child: Text(
+                                  _query.trim().isEmpty
+                                      ? "No compressed files yet."
+                                      : "No results.",
+                                  style: const TextStyle(color: Colors.grey),
                                 ),
-                              ],
+                              );
+                            }
+
+                            String? lastSection;
+                            return ListView.builder(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              itemCount: items.length,
+                              itemBuilder: (context, i) {
+                                final item = items[i];
+                                final section = _sectionFor(item.createdAt);
+                                final showHeader = lastSection != section;
+                                lastSection = section;
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (showHeader) _sectionTitle(section),
+                                    _historyCard(
+                                      item: item,
+                                      pdfColor: pdfColor,
+                                      isDark: isDark,
+                                    ),
+                                  ],
+                                );
+                              },
                             );
                           },
-                        );
-                      },
+                        ),
+                        _buildDevicePdfsTab(pdfColor, isDark),
+                      ],
                     ),
-                    _buildDevicePdfsTab(pdfColor, isDark),
-                  ],
-                ),
-              ),
+                  ),
                 ],
               ),
             ),
@@ -415,6 +417,13 @@ class _FilesScreenState extends State<FilesScreen> {
     return InkWell(
       onTap: () {
         if (isPdf) {
+          final file = File(item.outputPath);
+          if (!file.existsSync()) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("File no longer exists at this path.")),
+            );
+            return;
+          }
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -423,6 +432,13 @@ class _FilesScreenState extends State<FilesScreen> {
             ),
           );
         } else {
+          final file = File(item.outputPath);
+          if (!file.existsSync()) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Image no longer exists at this path.")),
+            );
+            return;
+          }
           // Simple image preview dialog
           showDialog(
             context: context,
@@ -432,7 +448,7 @@ class _FilesScreenState extends State<FilesScreen> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(20),
-                    child: Image.file(File(item.outputPath)),
+                    child: Image.file(file),
                   ),
                   Positioned(
                     top: 10,
@@ -453,7 +469,7 @@ class _FilesScreenState extends State<FilesScreen> {
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
           color: pdfColor.card,
           borderRadius: BorderRadius.circular(18),
@@ -482,35 +498,43 @@ class _FilesScreenState extends State<FilesScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    size,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
                     date,
                     style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
-                  if (savedPct != null) ...[
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: accent.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        '${savedPct.toStringAsFixed(0)}% saved',
-                        style: TextStyle(
-                          color: accent,
-                          fontWeight: FontWeight.w700,
+
+                  Row(
+                    spacing: 5,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        size,
+                        style: const TextStyle(
+                          color: Colors.grey,
                           fontSize: 12,
                         ),
                       ),
-                    ),
-                  ],
+                      if (savedPct != null) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '${savedPct.toStringAsFixed(0)}% saved',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -519,10 +543,17 @@ class _FilesScreenState extends State<FilesScreen> {
                 IconButton(
                   onPressed: () async {
                     final f = File(item.outputPath);
-                    if (!await f.exists()) return;
+                    if (!await f.exists()) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("File not found for sharing.")),
+                        );
+                      }
+                      return;
+                    }
                     await Share.shareXFiles([XFile(item.outputPath)]);
                   },
-                  icon: Icon(Icons.ios_share, color: accent, size: 20),
+                  icon: Icon(Icons.ios_share, color: Colors.blue, size: 20),
                 ),
                 IconButton(
                   onPressed: () => _showDeleteItemDialog(item),

@@ -165,6 +165,13 @@ class SuccessScreen extends StatelessWidget {
                           ),
                         ),
                         onPressed: () {
+                          final file = File(args.filePath);
+                          if (!file.existsSync()) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("PDF file could not be found.")),
+                            );
+                            return;
+                          }
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -201,7 +208,14 @@ class SuccessScreen extends StatelessWidget {
                       ),
                       onPressed: () async {
                         final file = File(args.filePath);
-                        if (!await file.exists()) return;
+                        if (!await file.exists()) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("File not found for sharing.")),
+                            );
+                          }
+                          return;
+                        }
                         await Share.shareXFiles([XFile(args.filePath)]);
                       },
                       icon: const Icon(Icons.ios_share),
