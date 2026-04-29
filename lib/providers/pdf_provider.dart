@@ -19,16 +19,20 @@ class PdfProvider with ChangeNotifier {
       // Map our level (0.0 to 1.0) to these properties
       int imageQuality;
       double imageScale;
+      bool unEmbedFonts;
 
       if (level > 0.67) {         // HIGH compression (smallest file)
-        imageQuality = 40;
-        imageScale = 0.5;
-      } else if (level > 0.34) {  // MEDIUM
-        imageQuality = 65;
-        imageScale = 0.7;
+        imageQuality = 35;
+        imageScale = 0.4;
+        unEmbedFonts = true;
+      } else if (level > 0.34) {  // MEDIUM/BALANCED
+        imageQuality = 60;
+        imageScale = 0.6;
+        unEmbedFonts = true;
       } else {                    // LOW compression (high quality)
-        imageQuality = 85;
-        imageScale = 0.9;
+        imageQuality = 80;
+        imageScale = 0.8;
+        unEmbedFonts = false;
       }
 
       final String? tempCompressedPath = await PdfManipulator().pdfCompressor(
@@ -36,6 +40,7 @@ class PdfProvider with ChangeNotifier {
           pdfPath: inputFile.path,
           imageQuality: imageQuality,
           imageScale: imageScale,
+          unEmbedFonts: unEmbedFonts,
         ),
       );
 
