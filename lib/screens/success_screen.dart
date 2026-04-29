@@ -81,17 +81,73 @@ class SuccessScreen extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        Container(
-                          height: 86,
-                          width: 86,
-                          decoration: BoxDecoration(
-                            color: colors.primary.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: Icon(
-                            args.isPdf ? Icons.picture_as_pdf : Icons.image,
-                            color: colors.primary,
-                            size: 46,
+                        GestureDetector(
+                          onTap: () {
+                            final file = File(args.filePath);
+                            if (!file.existsSync()) return;
+
+                            if (args.isPdf) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PdfViewScreen(
+                                    title: args.title,
+                                    path: args.filePath,
+                                  ),
+                                ),
+                              );
+                            } else {
+                              showDialog(
+                                context: context,
+                                builder: (context) => Dialog(
+                                  backgroundColor: Colors.transparent,
+                                  child: Stack(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(20),
+                                        child: Image.file(file),
+                                      ),
+                                      Positioned(
+                                        top: 10,
+                                        right: 10,
+                                        child: CircleAvatar(
+                                          backgroundColor: Colors.black54,
+                                          child: IconButton(
+                                            icon: const Icon(
+                                              Icons.close,
+                                              color: Colors.white,
+                                            ),
+                                            onPressed: () =>
+                                                Navigator.pop(context),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          child: Container(
+                            height: 86,
+                            width: 86,
+                            decoration: BoxDecoration(
+                              color: colors.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: args.isPdf
+                                ? Icon(
+                                    Icons.picture_as_pdf,
+                                    color: colors.primary,
+                                    size: 46,
+                                  )
+                                : ClipRRect(
+                                    borderRadius: BorderRadius.circular(24),
+                                    child: Image.file(
+                                      File(args.filePath),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
                           ),
                         ),
                         const SizedBox(height: 14),
@@ -168,7 +224,9 @@ class SuccessScreen extends StatelessWidget {
                           final file = File(args.filePath);
                           if (!file.existsSync()) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("PDF file could not be found.")),
+                              const SnackBar(
+                                content: Text("PDF file could not be found."),
+                              ),
                             );
                             return;
                           }
@@ -211,7 +269,9 @@ class SuccessScreen extends StatelessWidget {
                         if (!await file.exists()) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("File not found for sharing.")),
+                              const SnackBar(
+                                content: Text("File not found for sharing."),
+                              ),
                             );
                           }
                           return;

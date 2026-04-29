@@ -36,27 +36,35 @@ class _FilesScreenState extends State<FilesScreen> {
       List<Directory> dirsToSearch = [];
       if (Platform.isAndroid) {
         dirsToSearch = [
-          Directory('/storage/emulated/0/Download'),
-          Directory('/storage/emulated/0/Documents'),
+          Directory('/storage/emulated/0'),
         ];
       } else {
         final temp = await getApplicationDocumentsDirectory();
         dirsToSearch = [temp];
       }
 
-      for (var dir in dirsToSearch) {
-        if (await dir.exists()) {
-          try {
-            final stream = dir.list(recursive: true, followLinks: false);
-            await for (var entity in stream) {
-              if (entity is File &&
-                  entity.path.toLowerCase().endsWith('.pdf')) {
-                pdfs.add(entity);
+      Future<void> searchDirectory(Directory dir) async {
+        try {
+          final entities = await dir.list(followLinks: false).toList();
+          for (var entity in entities) {
+            if (entity is File && entity.path.toLowerCase().endsWith('.pdf')) {
+              pdfs.add(entity);
+            } else if (entity is Directory) {
+              final name = entity.uri.pathSegments.where((s) => s.isNotEmpty).last;
+              // Skip hidden folders and system/app data folders to speed up search and avoid permission issues
+              if (!name.startsWith('.') && name != 'Android') {
+                await searchDirectory(entity);
               }
             }
-          } catch (e) {
-            // ignore access errors
           }
+        } catch (e) {
+          // ignore access errors for specific folders
+        }
+      }
+
+      for (var dir in dirsToSearch) {
+        if (await dir.exists()) {
+          await searchDirectory(dir);
         }
       }
     } catch (e) {

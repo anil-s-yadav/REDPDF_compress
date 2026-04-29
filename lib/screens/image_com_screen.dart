@@ -257,7 +257,15 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
 
       File tempFile = File(outFile.path);
       final afterBytes = await tempFile.length();
-      File savedFile = tempFile;
+
+      // Always copy to our app's storage location for History & SuccessScreen
+      final targetDir = Directory(settings.storageLocation);
+      if (!await targetDir.exists()) {
+        await targetDir.create(recursive: true);
+      }
+      final finalPath =
+          '${targetDir.path}${Platform.pathSeparator}image_${stamp}_$nameWithoutExt.$_selectedFormat';
+      File savedFile = await tempFile.copy(finalPath);
 
       // Use MediaStore for public storage on Android
       if (Platform.isAndroid) {
@@ -272,26 +280,17 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
           dirName: DirName.download,
           relativePath: "RedPDF",
         );
-      } else {
-        // Fallback or iOS: copy to settings storage location
-        final targetDir = Directory(settings.storageLocation);
-        if (!await targetDir.exists()) {
-          await targetDir.create(recursive: true);
-        }
-        final finalPath =
-            '${targetDir.path}${Platform.pathSeparator}image_${stamp}_$nameWithoutExt.$_selectedFormat';
-        savedFile = await savedFile.copy(finalPath);
       }
 
       if (!mounted) return;
 
       context.read<HistoryProvider>().add(
         CompressionHistoryItem(
-          id: outFile.path,
+          id: savedFile.path,
           kind: CompressionKind.image,
           title: '$nameWithoutExt.$_selectedFormat',
           sourcePath: src.path,
-          outputPath: outFile.path,
+          outputPath: savedFile.path,
           sourceBytes: beforeBytes,
           outputBytes: afterBytes,
           createdAt: DateTime.now(),
@@ -308,7 +307,7 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
               : _doCompress
               ? 'Compressed successfully.'
               : 'Resized successfully.',
-          filePath: outFile.path,
+          filePath: savedFile.path,
           isPdf: false,
           beforeBytes: beforeBytes,
           afterBytes: afterBytes,

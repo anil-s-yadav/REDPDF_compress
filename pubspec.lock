@@ -427,10 +427,9 @@ packages:
   pdf_manipulator:
     dependency: "direct main"
     description:
-      name: pdf_manipulator
-      sha256: c65e143254992aa684b2c884d37f5058ac14a9fb29894d3933e8589629f8a2e4
-      url: "https://pub.dev"
-    source: hosted
+      path: "d:/REDPDF_Merge_Split/packages/pdf_manipulator"
+      relative: false
+    source: path
     version: "0.5.9"
   pdfium_dart:
     dependency: transitive

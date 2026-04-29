@@ -294,9 +294,7 @@ class ProfileScreen extends StatelessWidget {
         child: Column(
           children: [
             /// HEADER
-
             /*   const SizedBox(height: 10),
-      
         /// PROFILE
         CircleAvatar(
           radius: 45,
@@ -431,7 +429,10 @@ class ProfileScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                               color: Colors.green.withAlpha(30),
                             ),
-                            child: const Icon(Icons.storage, color: Colors.green),
+                            child: const Icon(
+                              Icons.storage,
+                              color: Colors.green,
+                            ),
                           ),
                           title: const Text("Storage Location"),
                           subtitle: Text(
@@ -527,7 +528,7 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 10),
 
             Text(
-              "VERSION 2.0.0 (2) • A Product by - REDPDF",
+              "VERSION 1.0.3 (3) • A Product by - REDPDF",
               style: TextStyle(fontSize: 12, color: color.text),
             ),
 

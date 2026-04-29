@@ -15,3 +15,7 @@
 
 # Play Core rules
 -dontwarn com.google.android.play.core.**
+
+# iText
+-keep class com.itextpdf.** { *; }
+-keep class org.bouncycastle.** { *; }

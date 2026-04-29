@@ -131,31 +131,32 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
       if (outFile == null) throw Exception("Compression failed");
 
       final afterBytes = await outFile.length();
-      File savedFile = outFile;
+      
+      final stamp = DateTime.now().millisecondsSinceEpoch;
+      final newFileName = 'RedPdf_comp_$stamp.pdf';
+
+      // Always copy to our app's storage location for History & SuccessScreen
+      final targetDir = Directory(settings.storageLocation);
+      if (!await targetDir.exists()) {
+        await targetDir.create(recursive: true);
+      }
+      final finalPath = '${targetDir.path}/$newFileName';
+      File savedFile = await outFile.copy(finalPath);
 
       // Use MediaStore for public storage on Android
       if (Platform.isAndroid) {
         MediaStore.appFolder = "RedPDF";
         final mediaStore = MediaStore();
 
+        // Rename the temp file so MediaStore saves it with the correct name
+        final tempRenamed = await outFile.rename('${tempDir.path}/$newFileName');
+
         await mediaStore.saveFile(
-          tempFilePath: outFile.path,
+          tempFilePath: tempRenamed.path,
           dirType: DirType.download,
           dirName: DirName.download,
           relativePath: "RedPDF",
         );
-
-        // We'll use the temp file for further processing in SuccessScreen
-        // as MediaStore doesn't give back a direct File handle easily on all versions.
-      } else {
-        // Fallback or iOS: copy to settings storage location
-        final targetDir = Directory(settings.storageLocation);
-        if (!await targetDir.exists()) {
-          await targetDir.create(recursive: true);
-        }
-        final finalPath =
-            '${targetDir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}_$safeName';
-        savedFile = await outFile.copy(finalPath);
       }
 
       final saved = savedFile;
@@ -166,7 +167,7 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
         CompressionHistoryItem(
           id: saved.path,
           kind: CompressionKind.pdf,
-          title: safeName,
+          title: newFileName,
           sourcePath: src.path,
           outputPath: saved.path,
           sourceBytes: beforeBytes,
