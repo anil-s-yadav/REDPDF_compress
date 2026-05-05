@@ -1,8 +1,12 @@
+import 'dart:io';
+import 'dart:developer';
+
 import 'package:compress_pdf_redpdf/screens/allfiles_screen.dart';
 import 'package:compress_pdf_redpdf/screens/homescreen.dart';
 import 'package:compress_pdf_redpdf/screens/profilescreen.dart';
 import 'package:compress_pdf_redpdf/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:in_app_update/in_app_update.dart';
 
 class NavigationPage extends StatefulWidget {
   const NavigationPage({super.key});
@@ -14,22 +18,38 @@ class NavigationPage extends StatefulWidget {
 class _NavigationPageState extends State<NavigationPage>
     with WidgetsBindingObserver {
   int _selectedIndex = 0;
-  // bool _isCheckingPermission = false;
 
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   WidgetsBinding.instance.addObserver(this);
-  //   WidgetsBinding.instance.addPostFrameCallback((_) {
-  //     _checkPermissions();
-  //   });
-  // }
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForUpdate();
+    });
+  }
 
-  // @override
-  // void dispose() {
-  //   WidgetsBinding.instance.removeObserver(this);
-  //   super.dispose();
-  // }
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  Future<void> _checkForUpdate() async {
+    if (!Platform.isAndroid) return;
+    try {
+      final info = await InAppUpdate.checkForUpdate();
+      if (info.updateAvailability == UpdateAvailability.updateAvailable) {
+        if (info.immediateUpdateAllowed) {
+          await InAppUpdate.performImmediateUpdate();
+        } else if (info.flexibleUpdateAllowed) {
+          await InAppUpdate.startFlexibleUpdate();
+          await InAppUpdate.completeFlexibleUpdate();
+        }
+      }
+    } catch (e) {
+      log('InAppUpdate error: $e');
+    }
+  }
 
   // @override
   // void didChangeAppLifecycleState(AppLifecycleState state) {

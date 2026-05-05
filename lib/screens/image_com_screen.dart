@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:developer';
 import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:compress_pdf_redpdf/models/compression_history_item.dart';
 import 'package:compress_pdf_redpdf/providers/history_provider.dart';
 import 'package:compress_pdf_redpdf/screens/success_screen.dart';
+import 'package:compress_pdf_redpdf/screens/processing_screen.dart';
 import 'package:compress_pdf_redpdf/theme/app_theme.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -41,7 +41,7 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
   bool _doResize = false;
   bool _keepAspect = true;
 
-  bool _isWorking = false;
+  final bool _isWorking = false;
   String? _error;
 
   final TextEditingController _wCtrl = TextEditingController();
@@ -173,155 +173,152 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
       return;
     }
 
-    setState(() {
-      _isWorking = true;
-      _error = null;
-    });
+    setState(() => _error = null);
 
-    try {
-      // Request storage permission for Android
-      if (Platform.isAndroid) {
-        final status = await Permission.storage.request();
-        if (status.isPermanentlyDenied) {
-          openAppSettings();
-          return;
-        }
-      }
+    // Capture values needed by the processing callback
+    final doCompress = _doCompress;
+    final doResize = _doResize;
+    final keepAspect = _keepAspect;
+    final selectedFormat = _selectedFormat;
+    final compressQuality = doCompress ? quality.round().clamp(1, 100) : 100;
+    final srcW = _srcW;
+    final srcH = _srcH;
 
-      final beforeBytes = await src.length();
-      if (!mounted) return;
-      final settings = context.read<SettingsProvider>();
+    final subtitle = doCompress && doResize
+        ? 'Compressed and resized successfully.'
+        : doCompress
+        ? 'Compressed successfully.'
+        : 'Resized successfully.';
 
-      // Use temporary directory for the compressed file
-      final tempDir = await getTemporaryDirectory();
-
-      final originalName = src.path.split(Platform.pathSeparator).last;
-      final nameWithoutExt = originalName.contains('.')
-          ? originalName.substring(0, originalName.lastIndexOf('.'))
-          : (originalName.isEmpty ? 'image' : originalName);
-
-      final stamp = DateTime.now().millisecondsSinceEpoch;
-      final outPath =
-          '${tempDir.path}${Platform.pathSeparator}image_${stamp}_$nameWithoutExt.$_selectedFormat';
-
-      final compressQuality = _doCompress ? quality.round().clamp(1, 100) : 100;
-
-      CompressFormat format;
-      switch (_selectedFormat) {
-        case 'png':
-          format = CompressFormat.png;
-          break;
-        case 'webp':
-          format = CompressFormat.webp;
-          break;
-        default:
-          format = CompressFormat.jpeg;
-      }
-
-      int? minW;
-      int? minH;
-      if (_doResize) {
-        if (_keepAspect) {
-          minW = targetW;
-          minH = targetH;
-          if (targetW != null && targetH != null) {
-            final sw = _srcW ?? targetW;
-            final sh = _srcH ?? targetH;
-            final scaleW = targetW / sw;
-            final scaleH = targetH / sh;
-            if (scaleW < scaleH) {
-              minH = null;
-            } else {
-              minW = null;
-            }
-          }
-        } else {
-          minW = targetW;
-          minH = targetH;
-        }
-      }
-
-      final outFile = await FlutterImageCompress.compressAndGetFile(
-        src.path,
-        outPath,
-        quality: compressQuality,
-        minWidth: minW ?? 1920,
-        minHeight: minH ?? 1080,
-        format: format,
-        keepExif: true,
-      );
-
-      if (outFile == null) {
-        throw StateError('Failed to process image.');
-      }
-
-      File tempFile = File(outFile.path);
-      final afterBytes = await tempFile.length();
-
-      // Always copy to our app's storage location for History & SuccessScreen
-      final targetDir = Directory(settings.storageLocation);
-      if (!await targetDir.exists()) {
-        await targetDir.create(recursive: true);
-      }
-      final finalPath =
-          '${targetDir.path}${Platform.pathSeparator}image_${stamp}_$nameWithoutExt.$_selectedFormat';
-      File savedFile = await tempFile.copy(finalPath);
-
-      // Use MediaStore for public storage on Android
-      if (Platform.isAndroid) {
-        MediaStore.appFolder = "RedPDF";
-        final mediaStore = MediaStore();
-
-        // Save to Pictures or Download? Usually Pictures for images,
-        // but user asked for Download/RedPDF specifically in instructions
-        await mediaStore.saveFile(
-          tempFilePath: outFile.path,
-          dirType: DirType.download,
-          dirName: DirName.download,
-          relativePath: "RedPDF",
-        );
-      }
-
-      if (!mounted) return;
-
-      context.read<HistoryProvider>().add(
-        CompressionHistoryItem(
-          id: savedFile.path,
-          kind: CompressionKind.image,
-          title: '$nameWithoutExt.$_selectedFormat',
-          sourcePath: src.path,
-          outputPath: savedFile.path,
-          sourceBytes: beforeBytes,
-          outputBytes: afterBytes,
-          createdAt: DateTime.now(),
-        ),
-      );
-
-      Navigator.pushNamed(
-        context,
-        '/success',
-        arguments: SuccessScreenArgs(
-          title: 'Image processed',
-          subtitle: _doCompress && _doResize
-              ? 'Compressed and resized successfully.'
-              : _doCompress
-              ? 'Compressed successfully.'
-              : 'Resized successfully.',
-          filePath: savedFile.path,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProcessingScreen(
           isPdf: false,
-          beforeBytes: beforeBytes,
-          afterBytes: afterBytes,
+          title: 'Processing Image',
+          processTask: (ctx) async {
+            // Request storage permission for Android
+            if (Platform.isAndroid) {
+              final status = await Permission.storage.request();
+              if (status.isPermanentlyDenied) {
+                openAppSettings();
+                throw Exception('Storage permission denied.');
+              }
+            }
+
+            final beforeBytes = await src.length();
+            final settings = ctx.read<SettingsProvider>();
+
+            final tempDir = await getTemporaryDirectory();
+            final stamp = DateTime.now().millisecondsSinceEpoch;
+            final outFileName = 'redpdf_cmp_$stamp.$selectedFormat';
+            final outPath =
+                '${tempDir.path}${Platform.pathSeparator}$outFileName';
+
+            CompressFormat format;
+            switch (selectedFormat) {
+              case 'png':
+                format = CompressFormat.png;
+                break;
+              case 'webp':
+                format = CompressFormat.webp;
+                break;
+              default:
+                format = CompressFormat.jpeg;
+            }
+
+            int? minW;
+            int? minH;
+            if (doResize) {
+              if (keepAspect) {
+                minW = targetW;
+                minH = targetH;
+                if (targetW != null && targetH != null) {
+                  final sw = srcW ?? targetW;
+                  final sh = srcH ?? targetH;
+                  final scaleW = targetW / sw;
+                  final scaleH = targetH / sh;
+                  if (scaleW < scaleH) {
+                    minH = null;
+                  } else {
+                    minW = null;
+                  }
+                }
+              } else {
+                minW = targetW;
+                minH = targetH;
+              }
+            }
+
+            final outFile = await FlutterImageCompress.compressAndGetFile(
+              src.path,
+              outPath,
+              quality: compressQuality,
+              minWidth: minW ?? 1920,
+              minHeight: minH ?? 1080,
+              format: format,
+              keepExif: true,
+            );
+
+            if (outFile == null) {
+              throw StateError('Failed to process image.');
+            }
+
+            File tempFile = File(outFile.path);
+            final afterBytes = await tempFile.length();
+
+            // Copy to app's storage location
+            final targetDir = Directory(settings.storageLocation);
+            if (!await targetDir.exists()) {
+              await targetDir.create(recursive: true);
+            }
+            final finalPath =
+                '${targetDir.path}${Platform.pathSeparator}$outFileName';
+            File savedFile = await tempFile.copy(finalPath);
+
+            // Use MediaStore for public storage on Android
+            if (Platform.isAndroid) {
+              MediaStore.appFolder = "RedPDF";
+              final mediaStore = MediaStore();
+
+              // Rename temp file so MediaStore saves with correct name
+              final tempRenamed = await File(
+                outFile.path,
+              ).rename('${tempDir.path}${Platform.pathSeparator}$outFileName');
+
+              await mediaStore.saveFile(
+                tempFilePath: tempRenamed.path,
+                dirType: DirType.download,
+                dirName: DirName.download,
+                relativePath: "RedPDF",
+              );
+            }
+
+            ctx.read<HistoryProvider>().add(
+              CompressionHistoryItem(
+                id: savedFile.path,
+                kind: CompressionKind.image,
+                title: outFileName,
+                sourcePath: src.path,
+                outputPath: savedFile.path,
+                sourceBytes: beforeBytes,
+                outputBytes: afterBytes,
+                createdAt: DateTime.now(),
+              ),
+            );
+
+            return SuccessScreenArgs(
+              title: 'Image processed',
+              subtitle: subtitle,
+              filePath: savedFile.path,
+              isPdf: false,
+              beforeBytes: beforeBytes,
+              afterBytes: afterBytes,
+            );
+          },
         ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = 'Image processing failed. ${e.toString()}');
-      log(e.toString());
-    } finally {
-      if (mounted) {
-        setState(() => _isWorking = false);
-      }
-    }
+      ),
+    );
   }
 
   @override

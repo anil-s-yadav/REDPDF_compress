@@ -66,7 +66,7 @@ class SuccessScreen extends StatelessWidget {
           Text(
             _formatBytes(args.afterBytes!),
             style: TextStyle(
-              color: colors.primary,
+              color: Colors.green,
               fontSize: 13,
               fontWeight: FontWeight.w800,
             ),
@@ -75,13 +75,13 @@ class SuccessScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: colors.primary.withValues(alpha: 0.12),
+              color: Colors.green.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               '-$pct%',
               style: TextStyle(
-                color: colors.primary,
+                color: Colors.green,
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
               ),
@@ -111,35 +111,43 @@ class SuccessScreen extends StatelessWidget {
               ),
             );
           },
-          child: Container(
-            height: 72,
-            width: 72,
-            decoration: BoxDecoration(
-              color: colors.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(20),
+          child: ListTile(
+            contentPadding: EdgeInsets.all(10),
+            leading: Container(
+              height: 100,
+              width: 100,
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                Icons.picture_as_pdf,
+                color: colors.primary,
+                size: 38,
+              ),
             ),
-            child: Icon(Icons.picture_as_pdf, color: colors.primary, size: 38),
+            title: Text(
+              args.title,
+              // textAlign: TextAlign.center,
+              style: TextStyle(
+                color: colors.text,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            // const SizedBox(width: 4),
+            subtitle: Text(
+              args.subtitle,
+              // textAlign: TextAlign.center,
+              style: TextStyle(
+                color: colors.text.withValues(alpha: 0.7),
+                fontSize: 13,
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: 12),
-        Text(
-          args.title,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: colors.text,
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          args.subtitle,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: colors.text.withValues(alpha: 0.7),
-            fontSize: 13,
-          ),
-        ),
+
+        // const SizedBox(height: 12),
         if (args.beforeBytes != null && args.afterBytes != null) ...[
           const SizedBox(height: 12),
           _buildSizeRow(args, colors),
