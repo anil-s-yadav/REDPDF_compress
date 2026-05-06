@@ -384,7 +384,7 @@ class ProfileScreen extends StatelessWidget {
                             ),
                             child: const Icon(Icons.deblur, color: Colors.blue),
                           ),
-                          title: const Text("Default Pdf Compression"),
+                          title: const Text("Default Compression"),
                           trailing: DropdownButton<CompressionLevel>(
                             value: settings.defaultCompression,
                             underline: const SizedBox(),

@@ -1,8 +1,8 @@
-import 'dart:developer';
 import 'dart:io';
 
 import 'package:compress_pdf_redpdf/providers/pdf_provider.dart';
 import 'package:compress_pdf_redpdf/screens/success_screen.dart';
+import 'package:compress_pdf_redpdf/screens/processing_screen.dart';
 import 'package:compress_pdf_redpdf/theme/app_theme.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +13,7 @@ import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/history_provider.dart';
 import '../models/compression_history_item.dart';
+import 'package:pdf_manipulator/pdf_manipulator.dart';
 
 class CompressPdfScreen extends StatefulWidget {
   final File? initialFile;
@@ -29,7 +30,7 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
       0.5; // UI: 0=Low (high quality) ... 1=High (smallest file)
   File? _selectedPdf;
   int? _selectedBytes;
-  bool _isWorking = false;
+  final bool _isWorking = false;
   String? _error;
 
   @override
@@ -85,6 +86,38 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
     });
   }
 
+  Future<String?> _showPasswordDialog() async {
+    String? password;
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Password Protected'),
+          content: TextField(
+            obscureText: true,
+            decoration: const InputDecoration(
+              hintText: 'Enter PDF password to unlock',
+            ),
+            onChanged: (value) {
+              password = value;
+            },
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('Unlock'),
+              onPressed: () => Navigator.of(context).pop(password),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _compress() async {
     final src = _selectedPdf;
     if (src == null) {
@@ -93,112 +126,168 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
     }
 
     setState(() {
-      _isWorking = true;
       _error = null;
     });
 
-    final provider = context.read<PdfProvider>();
+    bool isProtected = false;
+    String? userPassword;
+    File fileToCompress = src;
 
     try {
-      // Request storage permission for Android
-      if (Platform.isAndroid) {
-        final status = await Permission.storage.request();
-        if (status.isPermanentlyDenied) {
-          openAppSettings();
-          return;
-        }
-        if (!status.isGranted) {
-          // On Android 11+ Permission.storage might not grant write to some public folders
-          // But for Downloads usually it's okay or we might need manageExternalStorage
-          // Let's try to continue and see if it works, or ask for MANAGE if it's a dedicated folder.
-        }
-      }
-
-      final beforeBytes = await src.length();
-      final safeName = src.uri.pathSegments.last;
-      if (!mounted) return;
-      final settings = context.read<SettingsProvider>();
-
-      // Get temporary directory for initial compression
-      final tempDir = await getTemporaryDirectory();
-
-      final File? outFile = await provider.compressPdf(
-        inputFile: src,
-        level: compressionLevel,
-        storagePath: tempDir.path,
+      final protectionInfo = await PdfManipulator().pdfValidityAndProtection(
+        params: PDFValidityAndProtectionParams(pdfPath: src.path),
       );
-
-      if (outFile == null) throw Exception("Compression failed");
-
-      final afterBytes = await outFile.length();
-      
-      final stamp = DateTime.now().millisecondsSinceEpoch;
-      final newFileName = 'RedPdf_comp_$stamp.pdf';
-
-      // Always copy to our app's storage location for History & SuccessScreen
-      final targetDir = Directory(settings.storageLocation);
-      if (!await targetDir.exists()) {
-        await targetDir.create(recursive: true);
+      if (protectionInfo != null && 
+          (protectionInfo.isOpenPasswordProtected == true || protectionInfo.isOwnerPasswordProtected == true)) {
+        isProtected = true;
       }
-      final finalPath = '${targetDir.path}/$newFileName';
-      File savedFile = await outFile.copy(finalPath);
-
-      // Use MediaStore for public storage on Android
-      if (Platform.isAndroid) {
-        MediaStore.appFolder = "RedPDF";
-        final mediaStore = MediaStore();
-
-        // Rename the temp file so MediaStore saves it with the correct name
-        final tempRenamed = await outFile.rename('${tempDir.path}/$newFileName');
-
-        await mediaStore.saveFile(
-          tempFilePath: tempRenamed.path,
-          dirType: DirType.download,
-          dirName: DirName.download,
-          relativePath: "RedPDF",
-        );
-      }
-
-      final saved = savedFile;
-
-      if (!mounted) return;
-
-      context.read<HistoryProvider>().add(
-        CompressionHistoryItem(
-          id: saved.path,
-          kind: CompressionKind.pdf,
-          title: newFileName,
-          sourcePath: src.path,
-          outputPath: saved.path,
-          sourceBytes: beforeBytes,
-          outputBytes: afterBytes,
-          createdAt: DateTime.now(),
-        ),
-      );
-
-      if (!mounted) return;
-
-      Navigator.pushNamed(
-        context,
-        '/success',
-        arguments: SuccessScreenArgs(
-          title: 'PDF compressed',
-          subtitle: 'Saved to your device.',
-          filePath: saved.path,
-          isPdf: true,
-          beforeBytes: beforeBytes,
-          afterBytes: afterBytes,
-        ),
-      );
     } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = 'Compression failed: $e');
-      log(e.toString());
-    } finally {
-      if (mounted) {
-        setState(() => _isWorking = false);
+      // fallback
+    }
+
+    if (isProtected) {
+      userPassword = await _showPasswordDialog();
+      if (userPassword == null || userPassword.isEmpty) {
+        setState(() => _error = 'Password is required to compress this PDF.');
+        return;
+      }
+
+      try {
+        final unencryptedPath = await PdfManipulator().pdfDecryption(
+          params: PDFDecryptionParams(
+            pdfPath: src.path,
+            password: userPassword,
+          )
+        );
+        if (unencryptedPath == null) throw Exception('Decryption failed');
+        fileToCompress = File(unencryptedPath);
+      } catch (e) {
+        setState(() => _error = 'Incorrect password or decryption failed.');
+        return;
       }
     }
+
+    final provider = context.read<PdfProvider>();
+    final currentCompressionLevel = compressionLevel;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProcessingScreen(
+          isPdf: true,
+          title: 'Processing PDF',
+          processTask: (ctx) async {
+            // Request storage permission for Android
+            if (Platform.isAndroid) {
+              final status = await Permission.storage.request();
+              if (status.isPermanentlyDenied) {
+                openAppSettings();
+                throw Exception('Storage permission denied.');
+              }
+            }
+
+            final beforeBytes = await src.length();
+            final settings = ctx.read<SettingsProvider>();
+
+            // Get temporary directory for initial compression
+            final tempDir = await getTemporaryDirectory();
+
+            File? outFile = await provider.compressPdf(
+              inputFile: fileToCompress,
+              level: currentCompressionLevel,
+              storagePath: tempDir.path,
+            );
+
+            if (outFile == null) throw Exception("Compression failed");
+
+            if (isProtected && userPassword != null) {
+              try {
+                final encryptedPath = await PdfManipulator().pdfEncryption(
+                  params: PDFEncryptionParams(
+                    pdfPath: outFile.path,
+                    userPassword: userPassword,
+                    ownerPassword: userPassword,
+                    encryptionAES256: true,
+                  )
+                );
+                if (encryptedPath == null) throw Exception('Encryption failed');
+                
+                outFile = File(encryptedPath);
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'PDF compressed and locked with the original password.',
+                      ),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 4),
+                    ),
+                  );
+                }
+              } catch (e) {
+                throw Exception('Failed to re-apply password: $e');
+              }
+            }
+
+            final afterBytes = await outFile.length();
+
+            final stamp = DateTime.now().millisecondsSinceEpoch;
+            final newFileName = 'RedPdf_comp_$stamp.pdf';
+
+            // Always copy to our app's storage location for History & SuccessScreen
+            final targetDir = Directory(settings.storageLocation);
+            if (!await targetDir.exists()) {
+              await targetDir.create(recursive: true);
+            }
+            final finalPath = '${targetDir.path}/$newFileName';
+            File savedFile = await outFile.copy(finalPath);
+
+            // Use MediaStore for public storage on Android
+            if (Platform.isAndroid) {
+              MediaStore.appFolder = "RedPDF";
+              final mediaStore = MediaStore();
+
+              // Rename the temp file so MediaStore saves it with the correct name
+              final tempRenamed = await outFile.rename(
+                '${tempDir.path}/$newFileName',
+              );
+
+              await mediaStore.saveFile(
+                tempFilePath: tempRenamed.path,
+                dirType: DirType.download,
+                dirName: DirName.download,
+                relativePath: "RedPDF",
+              );
+            }
+
+            final saved = savedFile;
+
+            ctx.read<HistoryProvider>().add(
+              CompressionHistoryItem(
+                id: saved.path,
+                kind: CompressionKind.pdf,
+                title: newFileName,
+                sourcePath: src.path,
+                outputPath: saved.path,
+                sourceBytes: beforeBytes,
+                outputBytes: afterBytes,
+                createdAt: DateTime.now(),
+              ),
+            );
+
+            return SuccessScreenArgs(
+              title: 'PDF compressed',
+              subtitle: 'Saved to your device.',
+              filePath: saved.path,
+              isPdf: true,
+              beforeBytes: beforeBytes,
+              afterBytes: afterBytes,
+            );
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -595,7 +684,7 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
                   style: const TextStyle(
                     color: Colors.green,
                     fontWeight: FontWeight.bold,
-                    
+
                     fontSize: 12,
                   ),
                 ),

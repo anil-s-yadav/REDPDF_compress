@@ -7,8 +7,14 @@ import 'package:pdfrx/pdfrx.dart';
 class PdfViewScreen extends StatefulWidget {
   final String title;
   final String path;
+  final String? password;
 
-  const PdfViewScreen({super.key, required this.title, required this.path});
+  const PdfViewScreen({
+    super.key,
+    required this.title,
+    required this.path,
+    this.password,
+  });
 
   @override
   State<PdfViewScreen> createState() => _PdfViewScreenState();
@@ -50,6 +56,8 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
     }
   }
 
+  int _passwordAttempts = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -57,7 +65,18 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _pdfData != null
-          ? PdfViewer.data(_pdfData!, sourceName: widget.title)
+          ? PdfViewer.data(
+              _pdfData!,
+              sourceName: widget.title,
+              passwordProvider: () async {
+                if (_passwordAttempts == 0 && widget.password != null) {
+                  _passwordAttempts++;
+                  return widget.password;
+                }
+                return null;
+              },
+              params: PdfViewerParams(verticalCacheExtent: 5.0),
+            )
           : const Center(child: Text("Failed to load PDF")),
     );
   }

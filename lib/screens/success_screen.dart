@@ -6,6 +6,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'pdf_view_screen.dart';
+import 'package:pdf_manipulator/pdf_manipulator.dart';
 
 class SuccessScreenArgs {
   final String title;
@@ -27,6 +28,89 @@ class SuccessScreenArgs {
 
 class SuccessScreen extends StatelessWidget {
   const SuccessScreen({super.key});
+
+  Future<void> _openPdf(BuildContext context, String path, String title) async {
+    final file = File(path);
+    if (!file.existsSync()) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("PDF file could not be found.")),
+        );
+      }
+      return;
+    }
+
+    bool isProtected = false;
+    try {
+      final protectionInfo = await PdfManipulator().pdfValidityAndProtection(
+        params: PDFValidityAndProtectionParams(pdfPath: path),
+      );
+      if (protectionInfo != null && 
+          (protectionInfo.isOpenPasswordProtected == true || protectionInfo.isOwnerPasswordProtected == true)) {
+        isProtected = true;
+      }
+    } catch (e) {
+      //
+    }
+
+    String? password;
+    if (isProtected) {
+      password = await _showPasswordDialog(context);
+      if (password == null || password.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Password is required to view this PDF.')),
+          );
+        }
+        return;
+      }
+    }
+    
+    if (context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PdfViewScreen(
+            title: title,
+            path: path,
+            password: password,
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<String?> _showPasswordDialog(BuildContext context) async {
+    String? password;
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Password Protected'),
+          content: TextField(
+            obscureText: true,
+            decoration: const InputDecoration(
+              hintText: 'Enter PDF password to view',
+            ),
+            onChanged: (value) {
+              password = value;
+            },
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('Unlock'),
+              onPressed: () => Navigator.of(context).pop(password),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   static String _formatBytes(int bytes) {
     const kb = 1024.0;
@@ -101,15 +185,7 @@ class SuccessScreen extends StatelessWidget {
       children: [
         GestureDetector(
           onTap: () {
-            final file = File(args.filePath);
-            if (!file.existsSync()) return;
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    PdfViewScreen(title: args.title, path: args.filePath),
-              ),
-            );
+            _openPdf(context, args.filePath, args.title);
           },
           child: ListTile(
             contentPadding: EdgeInsets.all(10),
@@ -310,24 +386,7 @@ class SuccessScreen extends StatelessWidget {
                           ),
                         ),
                         onPressed: () {
-                          final file = File(args.filePath);
-                          if (!file.existsSync()) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("PDF file could not be found."),
-                              ),
-                            );
-                            return;
-                          }
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PdfViewScreen(
-                                title: args.title,
-                                path: args.filePath,
-                              ),
-                            ),
-                          );
+                          _openPdf(context, args.filePath, args.title);
                         },
                         icon: const Icon(Icons.picture_as_pdf),
                         label: const Text(

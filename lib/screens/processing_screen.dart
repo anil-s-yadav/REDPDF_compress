@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:compress_pdf_redpdf/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:compress_pdf_redpdf/screens/success_screen.dart';
@@ -31,12 +33,9 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
     try {
       final result = await widget.processTask(context);
       if (!mounted) return;
-      Navigator.pushReplacementNamed(
-        context,
-        '/success',
-        arguments: result,
-      );
+      Navigator.pushReplacementNamed(context, '/success', arguments: result);
     } catch (e) {
+      log(e.toString());
       if (!mounted) return;
       setState(() {
         _error = e.toString();
@@ -80,7 +79,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
                     ],
                   )
                 : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       Icon(Icons.error_outline, color: Colors.red, size: 64),
                       const SizedBox(height: 16),
@@ -101,6 +100,8 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
                         ),
                         child: Text(
                           _error!,
+                          maxLines: 20,
+                          overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.red),
                         ),
@@ -114,8 +115,11 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
                           ),
                         ),
                         onPressed: () => Navigator.pop(context),
-                        child: const Text("Go Back", style: TextStyle(color: Colors.white)),
-                      )
+                        child: const Text(
+                          "Go Back",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
                     ],
                   ),
           ),
