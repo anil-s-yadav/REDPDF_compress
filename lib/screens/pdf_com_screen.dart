@@ -7,7 +7,6 @@ import 'package:compress_pdf_redpdf/theme/app_theme.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:media_store_plus/media_store_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
@@ -28,10 +27,22 @@ class CompressPdfScreen extends StatefulWidget {
 class _CompressPdfScreenState extends State<CompressPdfScreen> {
   double compressionLevel =
       0.5; // UI: 0=Low (high quality) ... 1=High (smallest file)
+  bool _useTargetSize = false;
+  final TextEditingController _targetSizeCtrl = TextEditingController();
+  final TextEditingController _outputNameCtrl = TextEditingController();
+  String _targetSizeUnit = 'MB';
+
   File? _selectedPdf;
   int? _selectedBytes;
   final bool _isWorking = false;
   String? _error;
+
+  @override
+  void dispose() {
+    _targetSizeCtrl.dispose();
+    _outputNameCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -49,11 +60,23 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
   }
 
   double _estimatedRatio() {
+    if (_useTargetSize &&
+        _targetSizeCtrl.text.isNotEmpty &&
+        _selectedBytes != null &&
+        _selectedBytes! > 0) {
+      double target = double.tryParse(_targetSizeCtrl.text) ?? 0;
+      if (target > 0) {
+        double targetBytes =
+            target * (_targetSizeUnit == 'MB' ? 1024 * 1024 : 1024);
+        double ratio = targetBytes / _selectedBytes!;
+        return ratio.clamp(0.01, 0.99);
+      }
+    }
     // Continuous heuristic matching actual PdfManipulator compression
     // Level 0.0 (High Quality) -> ~50% of original
     // Level 0.5 (Balanced) -> ~33% of original
     // Level 1.0 (Smallest) -> ~15% of original
-    return 0.50 - (compressionLevel * 0.25);
+    return 0.50 - (compressionLevel * 0.30);
   }
 
   String _formatBytes(int bytes) {
@@ -170,7 +193,22 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
     }
 
     final provider = context.read<PdfProvider>();
-    final currentCompressionLevel = compressionLevel;
+
+    double actualLevel = compressionLevel;
+    if (_useTargetSize &&
+        _targetSizeCtrl.text.isNotEmpty &&
+        _selectedBytes != null &&
+        _selectedBytes! > 0) {
+      double target = double.tryParse(_targetSizeCtrl.text) ?? 0;
+      if (target > 0) {
+        double targetBytes =
+            target * (_targetSizeUnit == 'MB' ? 1024 * 1024 : 1024);
+        double targetRatio = targetBytes / _selectedBytes!;
+        actualLevel = (0.50 - targetRatio) / 0.30;
+        actualLevel = actualLevel.clamp(0.0, 1.0);
+      }
+    }
+    final currentCompressionLevel = actualLevel;
 
     Navigator.push(
       context,
@@ -235,7 +273,14 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
             final afterBytes = await outFile.length();
 
             final stamp = DateTime.now().millisecondsSinceEpoch;
-            final newFileName = 'RedPdf_comp_$stamp.pdf';
+            String newFileName = 'RedPdf_comp_$stamp.pdf';
+            if (_outputNameCtrl.text.trim().isNotEmpty) {
+              String name = _outputNameCtrl.text.trim();
+              if (!name.toLowerCase().endsWith('.pdf')) {
+                name += '.pdf';
+              }
+              newFileName = name;
+            }
 
             // Always copy to our app's storage location for History & SuccessScreen
             final targetDir = Directory(settings.storageLocation);
@@ -244,24 +289,6 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
             }
             final finalPath = '${targetDir.path}/$newFileName';
             File savedFile = await outFile.copy(finalPath);
-
-            // Use MediaStore for public storage on Android
-            if (Platform.isAndroid) {
-              MediaStore.appFolder = "RedPDF";
-              final mediaStore = MediaStore();
-
-              // Rename the temp file so MediaStore saves it with the correct name
-              final tempRenamed = await outFile.rename(
-                '${tempDir.path}/$newFileName',
-              );
-
-              await mediaStore.saveFile(
-                tempFilePath: tempRenamed.path,
-                dirType: DirType.download,
-                dirName: DirName.download,
-                relativePath: "RedPDF",
-              );
-            }
 
             final saved = savedFile;
 
@@ -309,13 +336,22 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
               const SizedBox(height: 50),
 
               _fileCard(isDark),
+              const SizedBox(height: 20),
 
-              // const SizedBox(height: 20),
-              _compressionSlider(isDark),
+              _modeToggle(isDark),
+              const SizedBox(height: 20),
+
+              _useTargetSize
+                  ? _targetSizeInput(isDark)
+                  : _compressionSlider(isDark),
               const SizedBox(height: 20),
 
               _estimatedCard(isDark),
+              const SizedBox(height: 20),
+
+              _outputNameInput(isDark),
               const SizedBox(height: 30),
+
               _compressButton(),
               const SizedBox(height: 20),
 
@@ -340,6 +376,160 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
         ), // end Center
       ), // end SafeArea
     ); // end Scaffold
+  }
+
+  Widget _modeToggle(bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey.shade900 : Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _useTargetSize = false),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: !_useTargetSize ? Colors.red : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  "By Level",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: !_useTargetSize ? Colors.white : Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _useTargetSize = true),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _useTargetSize ? Colors.red : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  "Target Size",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _useTargetSize ? Colors.white : Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _targetSizeInput(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey.shade900 : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Target Size",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+          ),
+          const SizedBox(height: 15),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _targetSizeCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  onChanged: (val) => setState(() {}),
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
+                    hintText: "Enter target size...",
+                    hintStyle: TextStyle(color: Colors.grey.shade500),
+                    filled: true,
+                    fillColor: isDark
+                        ? Colors.grey.shade800
+                        : Colors.grey.shade100,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _targetSizeUnit,
+                    dropdownColor: isDark ? Colors.grey.shade800 : Colors.white,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'MB', child: Text('MB')),
+                      DropdownMenuItem(value: 'KB', child: Text('KB')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _targetSizeUnit = val);
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 14, color: Colors.amber.shade700),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  "We will try to compress nearest to the target.",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.amber.shade700,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _titleSection(bool isDark) {
@@ -647,12 +837,25 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            children: [
+              Icon(Icons.info_outline, size: 14, color: Colors.grey.shade500),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  "Output file may be more smaller or bigger also.",
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
                   Text(
-                    _formatBytes(_selectedBytes!),
+                    bytes == null ? "0 B" : _formatBytes(bytes),
                     style: const TextStyle(
                       color: Colors.grey,
                       fontSize: 13,
@@ -766,4 +969,58 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
   //     ),
   //   );
   // }
+
+  Widget _outputNameInput(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey.shade900 : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.edit_document, size: 18, color: Colors.grey.shade500),
+              const SizedBox(width: 8),
+              Text(
+                "Output File Name (Optional)",
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _outputNameCtrl,
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontSize: 14,
+            ),
+            decoration: InputDecoration(
+              hintText: "e.g. MyCompressedFile",
+              hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+              filled: true,
+              fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade50,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:compress_pdf_redpdf/models/compression_history_item.dart';
@@ -10,7 +11,6 @@ import 'package:compress_pdf_redpdf/theme/app_theme.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:media_store_plus/media_store_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:provider/provider.dart';
@@ -40,6 +40,11 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
   bool _doCompress = true;
   bool _doResize = false;
   bool _keepAspect = true;
+
+  bool _useTargetSize = false;
+  final TextEditingController _targetSizeCtrl = TextEditingController();
+  final TextEditingController _outputNameCtrl = TextEditingController();
+  String _targetSizeUnit = 'MB';
 
   final bool _isWorking = false;
   String? _error;
@@ -73,6 +78,8 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
   void dispose() {
     _wCtrl.dispose();
     _hCtrl.dispose();
+    _targetSizeCtrl.dispose();
+    _outputNameCtrl.dispose();
     super.dispose();
   }
 
@@ -180,7 +187,22 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
     final doResize = _doResize;
     final keepAspect = _keepAspect;
     final selectedFormat = _selectedFormat;
-    final compressQuality = doCompress ? quality.round().clamp(1, 100) : 100;
+
+    double actualQuality = quality;
+    if (_doCompress && _useTargetSize && _targetSizeCtrl.text.isNotEmpty && _selectedBytes != null && _selectedBytes! > 0) {
+      double target = double.tryParse(_targetSizeCtrl.text) ?? 0;
+      if (target > 0) {
+        double targetBytes = target * (_targetSizeUnit == 'MB' ? 1024 * 1024 : 1024);
+        double targetRatio = targetBytes / _selectedBytes!;
+        double qNormSq = (targetRatio - 0.1) / 0.8;
+        if (qNormSq < 0) qNormSq = 0;
+        if (qNormSq > 1) qNormSq = 1;
+        double qNorm = math.sqrt(qNormSq);
+        actualQuality = qNorm * 100;
+      }
+    }
+
+    final compressQuality = doCompress ? actualQuality.round().clamp(1, 100) : 100;
     final srcW = _srcW;
     final srcH = _srcH;
 
@@ -211,7 +233,14 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
 
             final tempDir = await getTemporaryDirectory();
             final stamp = DateTime.now().millisecondsSinceEpoch;
-            final outFileName = 'redpdf_cmp_$stamp.$selectedFormat';
+            String outFileName = 'redpdf_cmp_$stamp.$selectedFormat';
+            if (_outputNameCtrl.text.trim().isNotEmpty) {
+              String name = _outputNameCtrl.text.trim();
+              if (!name.toLowerCase().endsWith('.$selectedFormat')) {
+                name += '.$selectedFormat';
+              }
+              outFileName = name;
+            }
             final outPath =
                 '${tempDir.path}${Platform.pathSeparator}$outFileName';
 
@@ -276,24 +305,6 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
                 '${targetDir.path}${Platform.pathSeparator}$outFileName';
             File savedFile = await tempFile.copy(finalPath);
 
-            // Use MediaStore for public storage on Android
-            if (Platform.isAndroid) {
-              MediaStore.appFolder = "RedPDF";
-              final mediaStore = MediaStore();
-
-              // Rename temp file so MediaStore saves with correct name
-              final tempRenamed = await File(
-                outFile.path,
-              ).rename('${tempDir.path}${Platform.pathSeparator}$outFileName');
-
-              await mediaStore.saveFile(
-                tempFilePath: tempRenamed.path,
-                dirType: DirType.download,
-                dirName: DirName.download,
-                relativePath: "RedPDF",
-              );
-            }
-
             ctx.read<HistoryProvider>().add(
               CompressionHistoryItem(
                 id: savedFile.path,
@@ -352,9 +363,14 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
                   const SizedBox(height: 20),
 
                   if (_doCompress) ...[
-                    _qualitySlider(isDark),
+                    _modeToggle(isDark),
+                    const SizedBox(height: 20),
+                    _useTargetSize ? _targetSizeInput(isDark) : _qualitySlider(isDark),
+                    if (!_useTargetSize) ...[
+                      const SizedBox(height: 25),
+                      _presetSelector(isDark),
+                    ],
                     const SizedBox(height: 25),
-                    _presetSelector(isDark),
                   ],
 
                   _dimensionInputs(isDark),
@@ -362,6 +378,9 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
 
                   _formatSelector(isDark),
                   const SizedBox(height: 20), _outcomeCard(isDark),
+                  const SizedBox(height: 20),
+
+                  _outputNameInput(isDark),
                   const SizedBox(height: 35),
 
                   _compressButton(),
@@ -601,6 +620,150 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
     );
   }
 
+  Widget _modeToggle(bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey.shade900 : Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _useTargetSize = false),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: !_useTargetSize ? Colors.blue : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  "By Quality",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: !_useTargetSize ? Colors.white : Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _useTargetSize = true),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _useTargetSize ? Colors.blue : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  "Target Size",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _useTargetSize ? Colors.white : Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _targetSizeInput(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey.shade900 : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Target Size",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+          ),
+          const SizedBox(height: 15),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _targetSizeCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (val) => setState(() {}),
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
+                    hintText: "Enter target size...",
+                    hintStyle: TextStyle(color: Colors.grey.shade500),
+                    filled: true,
+                    fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _targetSizeUnit,
+                    dropdownColor: isDark ? Colors.grey.shade800 : Colors.white,
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold),
+                    items: const [
+                      DropdownMenuItem(value: 'MB', child: Text('MB')),
+                      DropdownMenuItem(value: 'KB', child: Text('KB')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _targetSizeUnit = val);
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 14, color: Colors.amber.shade700),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  "We will try to compress nearest to the target.",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.amber.shade700,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _presetSelector(bool isDark) {
     if (!_doCompress) return const SizedBox.shrink();
     return Column(
@@ -815,6 +978,15 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
   }
 
   double _estimatedRatio() {
+    if (_useTargetSize && _targetSizeCtrl.text.isNotEmpty && _selectedBytes != null && _selectedBytes! > 0) {
+      double target = double.tryParse(_targetSizeCtrl.text) ?? 0;
+      if (target > 0) {
+        double targetBytes = target * (_targetSizeUnit == 'MB' ? 1024 * 1024 : 1024);
+        double ratio = targetBytes / _selectedBytes!;
+        return ratio.clamp(0.01, 0.99);
+      }
+    }
+
     double ratio = 1.0;
 
     // Estimate based on quality (continuous curve)
@@ -863,6 +1035,22 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
       ),
       child: Column(
         children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 14, color: Colors.grey.shade500),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  "Output file may be more smaller or bigger also.",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1040,6 +1228,54 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
                 ),
               );
             }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _outputNameInput(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey.shade900 : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.edit_document, size: 18, color: Colors.grey.shade500),
+              const SizedBox(width: 8),
+              Text(
+                "Output File Name (Optional)",
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _outputNameCtrl,
+            style: TextStyle(color: isDark ? Colors.white : Colors.black, fontSize: 14),
+            decoration: InputDecoration(
+              hintText: "e.g. MyCompressedImage",
+              hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+              filled: true,
+              fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade50,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
           ),
         ],
       ),

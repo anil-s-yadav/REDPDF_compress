@@ -21,69 +21,10 @@ class FilesScreen extends StatefulWidget {
 
 class _FilesScreenState extends State<FilesScreen> {
   String _query = '';
-  List<File> _devicePdfs = [];
-  bool _isLoadingPdfs = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchDevicePdfs();
-  }
-
-  Future<void> _fetchDevicePdfs() async {
-    List<File> pdfs = [];
-    try {
-      List<Directory> dirsToSearch = [];
-      if (Platform.isAndroid) {
-        dirsToSearch = [
-          Directory('/storage/emulated/0'),
-        ];
-      } else {
-        final temp = await getApplicationDocumentsDirectory();
-        dirsToSearch = [temp];
-      }
-
-      Future<void> searchDirectory(Directory dir) async {
-        try {
-          final entities = await dir.list(followLinks: false).toList();
-          for (var entity in entities) {
-            if (entity is File && entity.path.toLowerCase().endsWith('.pdf')) {
-              pdfs.add(entity);
-            } else if (entity is Directory) {
-              final name = entity.uri.pathSegments.where((s) => s.isNotEmpty).last;
-              // Skip hidden folders and system/app data folders to speed up search and avoid permission issues
-              if (!name.startsWith('.') && name != 'Android') {
-                await searchDirectory(entity);
-              }
-            }
-          }
-        } catch (e) {
-          // ignore access errors for specific folders
-        }
-      }
-
-      for (var dir in dirsToSearch) {
-        if (await dir.exists()) {
-          await searchDirectory(dir);
-        }
-      }
-    } catch (e) {
-      debugPrint("Error fetching device PDFs: $e");
-    }
-
-    // sort by modified date descending
-    try {
-      pdfs.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
-    } catch (e) {
-      debugPrint("Error sorting device PDFs: $e");
-    }
-
-    if (mounted) {
-      setState(() {
-        _devicePdfs = pdfs;
-        _isLoadingPdfs = false;
-      });
-    }
   }
 
   String _formatBytes(int bytes) {
@@ -128,8 +69,8 @@ class _FilesScreenState extends State<FilesScreen> {
                     dividerColor: Colors.transparent,
                     tabAlignment: TabAlignment.start,
                     tabs: const [
-                      Tab(text: "Compressed Files"),
-                      Tab(text: "Device PDFs"),
+                      Tab(text: "Compressed PDFs"),
+                      Tab(text: "Compressed Images"),
                     ],
                   ),
 
@@ -141,58 +82,14 @@ class _FilesScreenState extends State<FilesScreen> {
                       children: [
                         Consumer<HistoryProvider>(
                           builder: (context, history, _) {
-                            final items = history.items
-                                .where((e) {
-                                  if (_query.trim().isEmpty) return true;
-                                  return e.title.toLowerCase().contains(
-                                    _query.trim().toLowerCase(),
-                                  );
-                                })
-                                .toList(growable: false);
-
-                            if (!history.isLoaded) {
-                              return const Center(
-                                child: CircularProgressIndicator(),
-                              );
-                            }
-                            if (items.isEmpty) {
-                              return Center(
-                                child: Text(
-                                  _query.trim().isEmpty
-                                      ? "No compressed files yet."
-                                      : "No results.",
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
-                              );
-                            }
-
-                            String? lastSection;
-                            return ListView.builder(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              itemCount: items.length,
-                              itemBuilder: (context, i) {
-                                final item = items[i];
-                                final section = _sectionFor(item.createdAt);
-                                final showHeader = lastSection != section;
-                                lastSection = section;
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (showHeader) _sectionTitle(section),
-                                    _historyCard(
-                                      item: item,
-                                      pdfColor: pdfColor,
-                                      isDark: isDark,
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
+                            return _buildHistoryTab(history, CompressionKind.pdf, pdfColor, isDark);
                           },
                         ),
-                        _buildDevicePdfsTab(pdfColor, isDark),
+                        Consumer<HistoryProvider>(
+                          builder: (context, history, _) {
+                            return _buildHistoryTab(history, CompressionKind.image, pdfColor, isDark);
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -205,97 +102,60 @@ class _FilesScreenState extends State<FilesScreen> {
     );
   }
 
-  Widget _buildDevicePdfsTab(AppColors pdfColor, bool isDark) {
-    if (_isLoadingPdfs) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final items = _devicePdfs
+  Widget _buildHistoryTab(HistoryProvider history, CompressionKind kind, AppColors pdfColor, bool isDark) {
+    final items = history.items
         .where((e) {
+          if (e.kind != kind) return false;
           if (_query.trim().isEmpty) return true;
-          final name = e.uri.pathSegments.last;
-          return name.toLowerCase().contains(_query.trim().toLowerCase());
+          return e.title.toLowerCase().contains(
+            _query.trim().toLowerCase(),
+          );
         })
         .toList(growable: false);
 
+    if (!history.isLoaded) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
     if (items.isEmpty) {
       return Center(
         child: Text(
-          _query.trim().isEmpty ? "No PDFs found on device." : "No results.",
+          _query.trim().isEmpty
+              ? "No compressed ${kind == CompressionKind.pdf ? 'PDFs' : 'images'} yet."
+              : "No results.",
           style: const TextStyle(color: Colors.grey),
         ),
       );
     }
 
+    String? lastSection;
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+      ),
       itemCount: items.length,
       itemBuilder: (context, i) {
         final item = items[i];
-        final name = item.uri.pathSegments.last;
-        final size = _formatBytes(item.lengthSync());
-        final accent = isDark
-            ? AppThemeColors.pdfDark.primary
-            : AppThemeColors.pdfLight.primary;
-
-        return InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    PdfViewScreen(title: name, path: item.path),
-              ),
-            );
-          },
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: pdfColor.card,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                ),
-              ],
+        final section = _sectionFor(item.createdAt);
+        final showHeader = lastSection != section;
+        lastSection = section;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (showHeader) _sectionTitle(section),
+            _historyCard(
+              item: item,
+              pdfColor: pdfColor,
+              isDark: isDark,
             ),
-            child: Row(
-              children: [
-                _kindIcon(accent, isPdf: true),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(size, style: const TextStyle(color: Colors.grey)),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () async {
-                    if (!await item.exists()) return;
-                    await Share.shareXFiles([XFile(item.path)]);
-                  },
-                  icon: Icon(Icons.ios_share, color: accent),
-                ),
-              ],
-            ),
-          ),
+          ],
         );
       },
     );
   }
+
+
 
   Widget _header() {
     return Padding(

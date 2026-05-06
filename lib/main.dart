@@ -8,7 +8,6 @@ import 'package:compress_pdf_redpdf/screens/profilescreen.dart';
 import 'package:compress_pdf_redpdf/screens/success_screen.dart';
 import 'package:compress_pdf_redpdf/theme/app_theme.dart';
 
-import 'package:media_store_plus/media_store_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -18,8 +17,6 @@ import 'providers/settings_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await MediaStore.ensureInitialized();
-  MediaStore.appFolder = "RedPDF";
 
   runApp(
     MultiProvider(
