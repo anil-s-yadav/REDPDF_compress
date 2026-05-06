@@ -14,7 +14,9 @@ class HomeScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final pdfColor = isDark ? AppThemeColors.pdfDark : AppThemeColors.pdfLight;
-    final imgColor = isDark ? AppThemeColors.imageDark : AppThemeColors.imageLight;
+    final imgColor = isDark
+        ? AppThemeColors.imageDark
+        : AppThemeColors.imageLight;
 
     return Scaffold(
       backgroundColor: pdfColor.bg,
@@ -25,7 +27,10 @@ class HomeScreen extends StatelessWidget {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -48,7 +53,8 @@ class HomeScreen extends StatelessWidget {
                   child: _featureCard(
                     context,
                     title: "Compress PDF",
-                    subtitle: "Reduce PDF file size easily while keeping quality",
+                    subtitle:
+                        "Reduce PDF file size easily while keeping best quality.",
                     icon: Icons.picture_as_pdf_outlined,
                     primary: pdfColor.primary,
                     card: pdfColor.card,
@@ -63,7 +69,8 @@ class HomeScreen extends StatelessWidget {
                   child: _featureCard(
                     context,
                     title: "Compress Image",
-                    subtitle: "Optimize JPG, PNG, and WebP without quality loss",
+                    subtitle:
+                        "Optimize JPG, PNG, and WebP without quality loss in KB.",
                     icon: Icons.image_outlined,
                     primary: imgColor.primary,
                     card: imgColor.card,
@@ -88,18 +95,16 @@ class HomeScreen extends StatelessWidget {
     if (res == null || res.files.isEmpty) return;
     final path = res.files.single.path;
     if (path == null) return;
-    
+
     final file = File(path);
     final bytes = await file.length();
-    
+
     if (!context.mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CompressPdfScreen(
-          initialFile: file,
-          initialBytes: bytes,
-        ),
+        builder: (context) =>
+            CompressPdfScreen(initialFile: file, initialBytes: bytes),
       ),
     );
   }
@@ -113,18 +118,16 @@ class HomeScreen extends StatelessWidget {
     if (res == null || res.files.isEmpty) return;
     final path = res.files.single.path;
     if (path == null) return;
-    
+
     final file = File(path);
     final bytes = await file.length();
-    
+
     if (!context.mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CompressImageScreen(
-          initialFile: file,
-          initialBytes: bytes,
-        ),
+        builder: (context) =>
+            CompressImageScreen(initialFile: file, initialBytes: bytes),
       ),
     );
   }
@@ -157,6 +160,7 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       child: Row(
+        spacing: 15,
         children: [
           /// Icon Box
           Container(
@@ -168,7 +172,7 @@ class HomeScreen extends StatelessWidget {
             child: Icon(icon, color: primary, size: 40),
           ),
 
-          const SizedBox(width: 12),
+          // const SizedBox(width: 12),
 
           /// Text
           Expanded(
@@ -187,7 +191,10 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: TextStyle(color: subtitleColor.withValues(alpha: 0.7), fontSize: 13),
+                  style: TextStyle(
+                    color: subtitleColor.withValues(alpha: 0.7),
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),

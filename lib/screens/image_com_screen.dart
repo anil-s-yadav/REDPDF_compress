@@ -338,7 +338,7 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // _topBar(isDark),s
                   // const SizedBox(height: 20),
@@ -421,7 +421,7 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
 
   Widget _title(bool isDark) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           "Compress Image",
@@ -456,6 +456,7 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Stack(
             children: [
@@ -816,17 +817,14 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
   double _estimatedRatio() {
     double ratio = 1.0;
 
-    // Estimate based on quality
+    // Estimate based on quality (continuous curve)
     if (_doCompress) {
-      if (quality >= 90) {
-        ratio *= 0.75;
-      } else if (quality >= 75) {
-        ratio *= 0.45;
-      } else if (quality >= 50) {
-        ratio *= 0.25;
-      } else {
-        ratio *= 0.15;
-      }
+      // Quadratic curve simulates the non-linear drop-off of image file sizes
+      // Quality 100 -> ~90%
+      // Quality 50  -> ~30%
+      // Quality 10  -> ~11%
+      final double qNorm = quality / 100.0;
+      ratio *= (qNorm * qNorm * 0.8) + 0.1;
     }
 
     // Estimate based on dimension reduction

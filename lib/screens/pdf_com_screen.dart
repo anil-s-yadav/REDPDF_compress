@@ -49,10 +49,11 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
   }
 
   double _estimatedRatio() {
-    // Heuristic for preview only.
-    if (compressionLevel <= 0.34) return 0.80;
-    if (compressionLevel <= 0.67) return 0.55;
-    return 0.35;
+    // Continuous heuristic matching actual PdfManipulator compression
+    // Level 0.0 (High Quality) -> ~50% of original
+    // Level 0.5 (Balanced) -> ~33% of original
+    // Level 1.0 (Smallest) -> ~15% of original
+    return 0.50 - (compressionLevel * 0.25);
   }
 
   String _formatBytes(int bytes) {
@@ -137,8 +138,9 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
       final protectionInfo = await PdfManipulator().pdfValidityAndProtection(
         params: PDFValidityAndProtectionParams(pdfPath: src.path),
       );
-      if (protectionInfo != null && 
-          (protectionInfo.isOpenPasswordProtected == true || protectionInfo.isOwnerPasswordProtected == true)) {
+      if (protectionInfo != null &&
+          (protectionInfo.isOpenPasswordProtected == true ||
+              protectionInfo.isOwnerPasswordProtected == true)) {
         isProtected = true;
       }
     } catch (e) {
@@ -157,7 +159,7 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
           params: PDFDecryptionParams(
             pdfPath: src.path,
             password: userPassword,
-          )
+          ),
         );
         if (unencryptedPath == null) throw Exception('Decryption failed');
         fileToCompress = File(unencryptedPath);
@@ -208,10 +210,10 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
                     userPassword: userPassword,
                     ownerPassword: userPassword,
                     encryptionAES256: true,
-                  )
+                  ),
                 );
                 if (encryptedPath == null) throw Exception('Encryption failed');
-                
+
                 outFile = File(encryptedPath);
 
                 if (mounted) {
