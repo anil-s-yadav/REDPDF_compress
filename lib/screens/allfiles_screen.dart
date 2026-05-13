@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:path_provider/path_provider.dart';
 
 import 'pdf_view_screen.dart';
 
@@ -82,12 +81,22 @@ class _FilesScreenState extends State<FilesScreen> {
                       children: [
                         Consumer<HistoryProvider>(
                           builder: (context, history, _) {
-                            return _buildHistoryTab(history, CompressionKind.pdf, pdfColor, isDark);
+                            return _buildHistoryTab(
+                              history,
+                              CompressionKind.pdf,
+                              pdfColor,
+                              isDark,
+                            );
                           },
                         ),
                         Consumer<HistoryProvider>(
                           builder: (context, history, _) {
-                            return _buildHistoryTab(history, CompressionKind.image, pdfColor, isDark);
+                            return _buildHistoryTab(
+                              history,
+                              CompressionKind.image,
+                              pdfColor,
+                              isDark,
+                            );
                           },
                         ),
                       ],
@@ -102,21 +111,22 @@ class _FilesScreenState extends State<FilesScreen> {
     );
   }
 
-  Widget _buildHistoryTab(HistoryProvider history, CompressionKind kind, AppColors pdfColor, bool isDark) {
+  Widget _buildHistoryTab(
+    HistoryProvider history,
+    CompressionKind kind,
+    AppColors pdfColor,
+    bool isDark,
+  ) {
     final items = history.items
         .where((e) {
           if (e.kind != kind) return false;
           if (_query.trim().isEmpty) return true;
-          return e.title.toLowerCase().contains(
-            _query.trim().toLowerCase(),
-          );
+          return e.title.toLowerCase().contains(_query.trim().toLowerCase());
         })
         .toList(growable: false);
 
     if (!history.isLoaded) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
     if (items.isEmpty) {
       return Center(
@@ -131,9 +141,7 @@ class _FilesScreenState extends State<FilesScreen> {
 
     String? lastSection;
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: items.length,
       itemBuilder: (context, i) {
         final item = items[i];
@@ -144,18 +152,12 @@ class _FilesScreenState extends State<FilesScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (showHeader) _sectionTitle(section),
-            _historyCard(
-              item: item,
-              pdfColor: pdfColor,
-              isDark: isDark,
-            ),
+            _historyCard(item: item, pdfColor: pdfColor, isDark: isDark),
           ],
         );
       },
     );
   }
-
-
 
   Widget _header() {
     return Padding(
@@ -288,7 +290,9 @@ class _FilesScreenState extends State<FilesScreen> {
           final file = File(item.outputPath);
           if (!file.existsSync()) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("File no longer exists at this path.")),
+              const SnackBar(
+                content: Text("File no longer exists at this path."),
+              ),
             );
             return;
           }
@@ -303,7 +307,9 @@ class _FilesScreenState extends State<FilesScreen> {
           final file = File(item.outputPath);
           if (!file.existsSync()) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Image no longer exists at this path.")),
+              const SnackBar(
+                content: Text("Image no longer exists at this path."),
+              ),
             );
             return;
           }
@@ -414,7 +420,9 @@ class _FilesScreenState extends State<FilesScreen> {
                     if (!await f.exists()) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("File not found for sharing.")),
+                          const SnackBar(
+                            content: Text("File not found for sharing."),
+                          ),
                         );
                       }
                       return;

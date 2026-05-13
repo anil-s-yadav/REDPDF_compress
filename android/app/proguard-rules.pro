@@ -14,8 +14,7 @@
 -keep class com.snnafi.media_store_plus.** { *; }
 
 # Play Core rules
--dontwarn com.google.
-ay.core.**
+-dontwarn com.google.android.play.core.**
 
 # iText
 -keep class com.itextpdf.** { *; }

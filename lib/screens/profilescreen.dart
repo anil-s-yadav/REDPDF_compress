@@ -531,7 +531,6 @@ class ProfileScreen extends StatelessWidget {
               "VERSION 1.1.5 (5) • A Product by - REDPDF",
               style: TextStyle(fontSize: 12, color: color.text),
             ),
-
             const SizedBox(height: 20),
           ],
         ),
