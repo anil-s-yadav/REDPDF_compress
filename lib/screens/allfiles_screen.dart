@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:open_filex/open_filex.dart';
 
 import 'pdf_view_screen.dart';
 
@@ -285,7 +286,7 @@ class _FilesScreenState extends State<FilesScreen> {
               .clamp(0, 99.9);
 
     return InkWell(
-      onTap: () {
+      onTap: () async {
         if (isPdf) {
           final file = File(item.outputPath);
           if (!file.existsSync()) {
@@ -313,32 +314,18 @@ class _FilesScreenState extends State<FilesScreen> {
             );
             return;
           }
-          // Simple image preview dialog
-          showDialog(
-            context: context,
-            builder: (context) => Dialog(
-              backgroundColor: Colors.transparent,
-              child: Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Image.file(file),
-                  ),
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: CircleAvatar(
-                      backgroundColor: Colors.black54,
-                      child: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                  ),
-                ],
+          final result = await OpenFilex.open(item.outputPath);
+          if (result.type != ResultType.done && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  result.message.isNotEmpty
+                      ? result.message
+                      : 'Could not open file.',
+                ),
               ),
-            ),
-          );
+            );
+          }
         }
       },
       child: Container(
