@@ -45,7 +45,6 @@ dependencies:
   pdfrx: ^2.2.24
   pdf_manipulator:
     path: d:/REDPDF_Merge_Split/packages/pdf_manipulator
-  permission_handler: ^12.0.1
   external_path: ^2.2.0
   url_launcher: ^6.3.2
   open_filex: ^4.7.0

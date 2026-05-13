@@ -10,7 +10,6 @@ import 'package:compress_pdf_redpdf/screens/processing_screen.dart';
 import 'package:compress_pdf_redpdf/theme/app_theme.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:provider/provider.dart';
@@ -189,10 +188,15 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
     final selectedFormat = _selectedFormat;
 
     double actualQuality = quality;
-    if (_doCompress && _useTargetSize && _targetSizeCtrl.text.isNotEmpty && _selectedBytes != null && _selectedBytes! > 0) {
+    if (_doCompress &&
+        _useTargetSize &&
+        _targetSizeCtrl.text.isNotEmpty &&
+        _selectedBytes != null &&
+        _selectedBytes! > 0) {
       double target = double.tryParse(_targetSizeCtrl.text) ?? 0;
       if (target > 0) {
-        double targetBytes = target * (_targetSizeUnit == 'MB' ? 1024 * 1024 : 1024);
+        double targetBytes =
+            target * (_targetSizeUnit == 'MB' ? 1024 * 1024 : 1024);
         double targetRatio = targetBytes / _selectedBytes!;
         double qNormSq = (targetRatio - 0.1) / 0.8;
         if (qNormSq < 0) qNormSq = 0;
@@ -202,7 +206,9 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
       }
     }
 
-    final compressQuality = doCompress ? actualQuality.round().clamp(1, 100) : 100;
+    final compressQuality = doCompress
+        ? actualQuality.round().clamp(1, 100)
+        : 100;
     final srcW = _srcW;
     final srcH = _srcH;
 
@@ -219,15 +225,6 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
           isPdf: false,
           title: 'Processing Image',
           processTask: (ctx) async {
-            // Request storage permission for Android
-            if (Platform.isAndroid) {
-              final status = await Permission.storage.request();
-              if (status.isPermanentlyDenied) {
-                openAppSettings();
-                throw Exception('Storage permission denied.');
-              }
-            }
-
             final beforeBytes = await src.length();
             final settings = ctx.read<SettingsProvider>();
 
@@ -365,7 +362,9 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
                   if (_doCompress) ...[
                     _modeToggle(isDark),
                     const SizedBox(height: 20),
-                    _useTargetSize ? _targetSizeInput(isDark) : _qualitySlider(isDark),
+                    _useTargetSize
+                        ? _targetSizeInput(isDark)
+                        : _qualitySlider(isDark),
                     if (!_useTargetSize) ...[
                       const SizedBox(height: 25),
                       _presetSelector(isDark),
@@ -700,19 +699,26 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
               Expanded(
                 child: TextField(
                   controller: _targetSizeCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   onChanged: (val) => setState(() {}),
                   style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: InputDecoration(
                     hintText: "Enter target size...",
                     hintStyle: TextStyle(color: Colors.grey.shade500),
                     filled: true,
-                    fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                    fillColor: isDark
+                        ? Colors.grey.shade800
+                        : Colors.grey.shade100,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                   ),
                 ),
               ),
@@ -727,7 +733,10 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
                   child: DropdownButton<String>(
                     value: _targetSizeUnit,
                     dropdownColor: isDark ? Colors.grey.shade800 : Colors.white,
-                    style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
                     items: const [
                       DropdownMenuItem(value: 'MB', child: Text('MB')),
                       DropdownMenuItem(value: 'KB', child: Text('KB')),
@@ -978,10 +987,14 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
   }
 
   double _estimatedRatio() {
-    if (_useTargetSize && _targetSizeCtrl.text.isNotEmpty && _selectedBytes != null && _selectedBytes! > 0) {
+    if (_useTargetSize &&
+        _targetSizeCtrl.text.isNotEmpty &&
+        _selectedBytes != null &&
+        _selectedBytes! > 0) {
       double target = double.tryParse(_targetSizeCtrl.text) ?? 0;
       if (target > 0) {
-        double targetBytes = target * (_targetSizeUnit == 'MB' ? 1024 * 1024 : 1024);
+        double targetBytes =
+            target * (_targetSizeUnit == 'MB' ? 1024 * 1024 : 1024);
         double ratio = targetBytes / _selectedBytes!;
         return ratio.clamp(0.01, 0.99);
       }
@@ -1042,10 +1055,7 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
               Expanded(
                 child: Text(
                   "Output file may be more smaller or bigger also.",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade500,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                 ),
               ),
             ],
@@ -1264,7 +1274,10 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
           const SizedBox(height: 12),
           TextField(
             controller: _outputNameCtrl,
-            style: TextStyle(color: isDark ? Colors.white : Colors.black, fontSize: 14),
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontSize: 14,
+            ),
             decoration: InputDecoration(
               hintText: "e.g. MyCompressedImage",
               hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
@@ -1274,7 +1287,10 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
             ),
           ),
         ],
