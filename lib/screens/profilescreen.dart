@@ -480,7 +480,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   GestureDetector(
                     onTap: () => _launchUrl(
-                      "https://play.google.com/store/apps/details?id=com.legendarysoftware.compress_pdf_redpdf",
+                      "https://play.google.com/store/search?q=pub%3ALegendary%20Software%20Solutions&c=apps",
                     ),
                     child: _tile(
                       "Our Other Apps",
@@ -493,7 +493,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   GestureDetector(
                     onTap: () => _launchUrl(
-                      "https://anil-s-yadav.github.io/REDPDF-PrivacyPolicy/",
+                      "https://anil-s-yadav.github.io/REDPDF_compress_privacy_policy/",
                     ),
                     child: _tile(
                       "Privacy Policy",
@@ -528,7 +528,7 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 10),
 
             Text(
-              "VERSION 1.1.8 (8) • A Product by - REDPDF",
+              "VERSION 1.1.9 (9) • A Product by - REDPDF",
               style: TextStyle(fontSize: 12, color: color.text),
             ),
             const SizedBox(height: 20),
