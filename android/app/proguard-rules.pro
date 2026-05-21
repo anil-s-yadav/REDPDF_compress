@@ -19,3 +19,15 @@
 # iText
 -keep class com.itextpdf.** { *; }
 -keep class org.bouncycastle.** { *; }
+
+# Apache Xerces (required by iText7 for XML parsing)
+-keep class org.apache.** { *; }
+-dontwarn org.apache.**
+
+# iText7 additional dependencies
+-keep class javax.xml.** { *; }
+-dontwarn javax.xml.**
+-keep class org.w3c.** { *; }
+-dontwarn org.w3c.**
+-keep class org.xml.** { *; }
+-dontwarn org.xml.**

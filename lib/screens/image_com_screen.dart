@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:compress_pdf_redpdf/utils/media_scan_helper.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -301,6 +302,9 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
             final finalPath =
                 '${targetDir.path}${Platform.pathSeparator}$outFileName';
             File savedFile = await tempFile.copy(finalPath);
+
+            // Notify Android MediaStore so the file appears in file managers/gallery
+            await MediaScanHelper.scanFile(finalPath);
 
             ctx.read<HistoryProvider>().add(
               CompressionHistoryItem(
@@ -1049,19 +1053,6 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
       child: Column(
         children: [
           Row(
-            children: [
-              Icon(Icons.info_outline, size: 14, color: Colors.grey.shade500),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  "Output file may be more smaller or bigger also.",
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
@@ -1117,6 +1108,19 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
               backgroundColor: isDark ? Colors.black26 : Colors.grey.shade100,
               color: Colors.blue,
             ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 14, color: Colors.amber.shade500),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  "Output file may be more smaller or bigger also.",
+                  style: TextStyle(fontSize: 12, color: Colors.amber.shade500),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1282,7 +1286,7 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
               hintText: "e.g. MyCompressedImage",
               hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
               filled: true,
-              fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade50,
+              fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,

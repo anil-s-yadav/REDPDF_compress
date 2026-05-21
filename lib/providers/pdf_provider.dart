@@ -24,11 +24,11 @@ class PdfProvider with ChangeNotifier {
       if (level > 0.67) {         // HIGH compression (smallest file)
         imageQuality = 35;
         imageScale = 0.4;
-        unEmbedFonts = true;
+        unEmbedFonts = false; // disabled: pdf_manipulator's unEmbedTTF crashes on some fonts
       } else if (level > 0.34) {  // MEDIUM/BALANCED
         imageQuality = 60;
         imageScale = 0.6;
-        unEmbedFonts = true;
+        unEmbedFonts = false; // disabled: pdf_manipulator's unEmbedTTF crashes on some fonts
       } else {                    // LOW compression (high quality)
         imageQuality = 80;
         imageScale = 0.8;

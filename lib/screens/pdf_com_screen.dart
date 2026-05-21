@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:compress_pdf_redpdf/utils/media_scan_helper.dart';
 
 import 'package:compress_pdf_redpdf/providers/pdf_provider.dart';
 import 'package:compress_pdf_redpdf/screens/success_screen.dart';
@@ -29,11 +30,11 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
   bool _useTargetSize = false;
   final TextEditingController _targetSizeCtrl = TextEditingController();
   final TextEditingController _outputNameCtrl = TextEditingController();
-  String _targetSizeUnit = 'MB';
+  String _targetSizeUnit = 'KB';
 
   File? _selectedPdf;
   int? _selectedBytes;
-  final bool _isWorking = false;
+  // final bool _isWorking = false;
   String? _error;
 
   @override
@@ -280,6 +281,9 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
             final finalPath = '${targetDir.path}/$newFileName';
             File savedFile = await outFile.copy(finalPath);
 
+            // Notify Android MediaStore so the file appears in file managers
+            await MediaScanHelper.scanFile(finalPath);
+
             final saved = savedFile;
 
             ctx.read<HistoryProvider>().add(
@@ -321,32 +325,29 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(10),
           child: Column(
+            spacing: 20,
             children: [
-              _titleSection(isDark),
-              const SizedBox(height: 50),
-
-              _fileCard(isDark),
-              const SizedBox(height: 20),
+              Text(
+                "Compress PDF",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
 
               _modeToggle(isDark),
-              const SizedBox(height: 20),
+              _fileCard(isDark),
 
               _useTargetSize
                   ? _targetSizeInput(isDark)
                   : _compressionSlider(isDark),
-              const SizedBox(height: 20),
-
-              _estimatedCard(isDark),
-              const SizedBox(height: 20),
 
               _outputNameInput(isDark),
-              const SizedBox(height: 30),
 
+              if (!_useTargetSize) _estimatedCard(isDark),
               _compressButton(),
-              const SizedBox(height: 20),
-
               // _premiumCard(),
-              const SizedBox(height: 15),
 
               // _securityNote(isDark),
               if (_error != null) ...[
@@ -487,8 +488,8 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'MB', child: Text('MB')),
                       DropdownMenuItem(value: 'KB', child: Text('KB')),
+                      DropdownMenuItem(value: 'MB', child: Text('MB')),
                     ],
                     onChanged: (val) {
                       if (val != null) {
@@ -519,27 +520,6 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _titleSection(bool isDark) {
-    return Column(
-      children: [
-        Text(
-          "Compress PDF",
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white : Colors.black,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          "Optimize your documents for sharing without losing visual integrity. Professional tools for refined workflows.",
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey.shade600),
-        ),
-      ],
     );
   }
 
@@ -726,57 +706,54 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
                 "CURRENT SELECTION",
                 style: TextStyle(color: Colors.red, fontSize: 12),
               ),
-              InkWell(
-                onTap: _isWorking ? null : _pickPdf,
-                child: const Text(
-                  "Change/Reselect",
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
+              // InkWell(
+              //   onTap: _isWorking ? null : _pickPdf,
+              //   child: const Text(
+              //     "Change/Reselect",
+              //     style: TextStyle(color: Colors.red),
+              //   ),
+              // ),
             ],
           ),
           const SizedBox(height: 15),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  height: 45,
-                  width: 45,
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade100,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.picture_as_pdf, color: Colors.red),
+          Row(
+            children: [
+              Container(
+                height: 45,
+                width: 45,
+                decoration: BoxDecoration(
+                  color: Colors.red.shade100,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black,
-                        ),
+                child: const Icon(Icons.picture_as_pdf, color: Colors.red),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black,
                       ),
-                      Text(
-                        bytes == null
-                            ? "Tap “Change/Reselect” to choose a PDF"
-                            : _formatBytes(bytes),
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ),
+                    ),
+                    Text(
+                      bytes == null
+                          ? "Tap “Change/Reselect” to choose a PDF"
+                          : _formatBytes(bytes),
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              IconButton(
+                onPressed: _pickPdf,
+                icon: Icon(Icons.refresh, color: Colors.blue),
+              ),
+            ],
           ),
         ],
       ),
@@ -791,12 +768,12 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.red,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(20),
           ),
         ),
-        onPressed: _isWorking ? null : _compress,
+        onPressed: _compress,
         child: Text(
-          _isWorking ? "Compressing…" : "Compress Now",
+          "Compress Now",
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -826,19 +803,6 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.info_outline, size: 14, color: Colors.grey.shade500),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  "Output file may be more smaller or bigger also.",
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -900,15 +864,17 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
             ),
           ),
           const SizedBox(height: 5),
-          Text(
-            savedPct == null
-                ? "Pick a PDF to see an estimate."
-                : "Reducing your file size by approximately ${savedPct.toStringAsFixed(0)}%.",
-            style: const TextStyle(
-              fontStyle: FontStyle.italic,
-              color: Colors.grey,
-              fontSize: 12,
-            ),
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 14, color: Colors.grey.shade500),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  "Output file may be more smaller or bigger also.",
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -998,7 +964,7 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
               hintText: "e.g. MyCompressedFile",
               hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
               filled: true,
-              fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade50,
+              fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
