@@ -31,3 +31,9 @@
 -dontwarn org.w3c.**
 -keep class org.xml.** { *; }
 -dontwarn org.xml.**
+
+# Jackson JSON (optional dependency for iText7)
+-dontwarn com.fasterxml.jackson.**
+
+# BouncyCastle LDAP/JNDI dependencies
+-dontwarn javax.naming.**

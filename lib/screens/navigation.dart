@@ -7,7 +7,6 @@ import 'package:compress_pdf_redpdf/screens/profilescreen.dart';
 import 'package:compress_pdf_redpdf/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_update/in_app_update.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class NavigationPage extends StatefulWidget {
   const NavigationPage({super.key});
@@ -27,7 +26,6 @@ class _NavigationPageState extends State<NavigationPage>
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkForUpdate();
-      _checkPermissions();
     });
   }
 
@@ -35,13 +33,6 @@ class _NavigationPageState extends State<NavigationPage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _checkPermissions();
-    }
   }
 
   Future<void> _checkForUpdate() async {
@@ -58,34 +49,6 @@ class _NavigationPageState extends State<NavigationPage>
       }
     } catch (e) {
       log('InAppUpdate error: $e');
-    }
-  }
-
-  Future<void> _checkPermissions() async {
-    if (_isCheckingPermission) return;
-    _isCheckingPermission = true;
-
-    try {
-      if (Platform.isAndroid) {
-        bool manageGranted = await Permission.manageExternalStorage.isGranted;
-        bool storageGranted = await Permission.storage.isGranted;
-
-        if (!manageGranted && !storageGranted) {
-          // Android 10 and below
-          await Permission.storage.request();
-
-          // Android 11+ — redirects to 'All files access' settings page
-          await Permission.manageExternalStorage.request();
-        }
-      }
-    } catch (e) {
-      log('Permission error: $e');
-    } finally {
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          _isCheckingPermission = false;
-        }
-      });
     }
   }
 
