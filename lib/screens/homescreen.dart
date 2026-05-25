@@ -143,36 +143,56 @@ class HomeScreen extends StatelessWidget {
     required Color text,
     required Color subtitleColor,
   }) {
+    final isDark = Theme.of(cnt).brightness == Brightness.dark;
+
     return Container(
       constraints: const BoxConstraints(minHeight: 110, maxHeight: 150),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: card,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: primary.withAlpha(isDark ? 30 : 15),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: primary.withValues(alpha: 0.05),
+            color: primary.withAlpha(isDark ? 20 : 25),
+            blurRadius: 20,
+            spreadRadius: 0,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: (isDark ? Colors.black : Colors.black).withAlpha(isDark ? 40 : 8),
             blurRadius: 10,
-            spreadRadius: 5,
-            offset: Offset(5, 5),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Row(
         spacing: 15,
         children: [
-          /// Icon Box
+          /// Icon Box — gradient background
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              gradient: LinearGradient(
+                colors: [
+                  primary.withAlpha(30),
+                  primary.withAlpha(15),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: primary.withAlpha(25),
+                width: 1,
+              ),
             ),
-            child: Icon(icon, color: primary, size: 40),
+            child: Icon(icon, color: primary, size: 36),
           ),
-
-          // const SizedBox(width: 12),
 
           /// Text
           Expanded(
@@ -185,22 +205,31 @@ class HomeScreen extends StatelessWidget {
                   style: TextStyle(
                     color: text,
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 17,
+                    letterSpacing: -0.3,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: subtitleColor.withValues(alpha: 0.7),
+                    color: subtitleColor.withAlpha(140),
                     fontSize: 13,
+                    height: 1.3,
                   ),
                 ),
               ],
             ),
           ),
 
-          Icon(Icons.arrow_forward_ios, size: 16, color: primary),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: primary.withAlpha(15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: primary),
+          ),
         ],
       ),
     );

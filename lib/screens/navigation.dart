@@ -18,7 +18,6 @@ class NavigationPage extends StatefulWidget {
 class _NavigationPageState extends State<NavigationPage>
     with WidgetsBindingObserver {
   int _selectedIndex = 0;
-  bool _isCheckingPermission = false;
 
   @override
   void initState() {
@@ -66,15 +65,15 @@ class _NavigationPageState extends State<NavigationPage>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context).colorScheme;
+    // final theme = Theme.of(context).colorScheme;
     final appColors = AppThemeColors.pdfLight;
 
     return Scaffold(
-      backgroundColor: appColors.primary,
+      // backgroundColor: appColors.primary,
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: theme.surface,
-        elevation: 10,
+        backgroundColor: appColors.bg,
+        elevation: 5,
         selectedItemColor: appColors.primary,
         unselectedItemColor: Colors.grey,
         selectedFontSize: 12,

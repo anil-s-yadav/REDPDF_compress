@@ -223,59 +223,63 @@ class ProfileScreen extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            /// 📄 SUPPORT
-            _sectionTitle("SUPPORT & LEGAL"),
+            /// 📄 LEGAL
+            _sectionTitle("LEGAL"),
 
             _card(
               color.card,
-              child: Column(
+              child: GestureDetector(
+                onTap: () => _launchUrl(
+                  "https://anil-s-yadav.github.io/REDPDF_compress_privacy_policy/",
+                ),
+                child: _tile(
+                  "Privacy Policy",
+                  null,
+                  color,
+                  Icons.privacy_tip_outlined,
+                  Icons.arrow_forward_ios,
+                  Colors.teal,
+                ),
+              ),
+            ),
+            const SizedBox(height: 15),
+
+            /// 📄 SUPPORT
+            _sectionTitle("SUPPORT US"),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
                 children: [
-                  GestureDetector(
-                    onTap: () => _launchUrl(
-                      "https://play.google.com/store/apps/details?id=com.legendarysoftware.compress_pdf_redpdf",
-                    ),
-                    child: _tile(
-                      "Rate Us",
-                      null,
-                      color,
-                      Icons.star,
-                      Icons.open_in_new,
-                      Colors.amber,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => _launchUrl(
-                      "https://play.google.com/store/search?q=pub%3ALegendary%20Software%20Solutions&c=apps",
-                    ),
-                    child: _tile(
-                      "Our Other Apps",
-                      null,
-                      color,
-                      Icons.apps,
-                      Icons.open_in_new,
-                      Colors.indigo,
+                  Expanded(
+                    child: _buildActionCard(
+                      title: "Rate Us",
+                      subtitle: "Love the app?",
+                      icon: Icons.star_rounded,
+                      colors: [
+                        Colors.amber.shade400,
+                        Colors.deepOrange.shade400,
+                      ],
+                      onTap: () => _launchUrl(
+                        "https://play.google.com/store/apps/details?id=com.legendarysoftware.compress_pdf_redpdf",
+                      ),
                     ),
                   ),
-                  GestureDetector(
-                    onTap: () => _launchUrl(
-                      "https://anil-s-yadav.github.io/REDPDF_compress_privacy_policy/",
-                    ),
-                    child: _tile(
-                      "Privacy Policy",
-                      null,
-                      color,
-                      Icons.privacy_tip_outlined,
-                      Icons.arrow_forward_ios,
-                      Colors.teal,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildActionCard(
+                      title: "More Apps",
+                      subtitle: "Try our tools",
+                      icon: Icons.dashboard_rounded,
+                      colors: [
+                        Colors.lightBlue.shade400,
+                        Colors.indigo.shade500,
+                      ],
+                      onTap: () => _launchUrl(
+                        "https://play.google.com/store/search?q=pub%3ALegendary%20Software%20Solutions&c=apps",
+                      ),
                     ),
                   ),
-                  //   _tile(
-                  //     "Terms & Conditions",
-                  //     null,
-                  //     color,
-                  //     Icons.gavel_outlined,
-                  //     Icons.arrow_forward_ios,
-                  //   ),
                 ],
               ),
             ),
@@ -322,8 +326,9 @@ class ProfileScreen extends StatelessWidget {
     AppColors color,
     IconData? icon1,
     IconData? icon2,
-    Color iconColor,
-  ) {
+    Color iconColor, {
+    bool isBold = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: ListTile(
@@ -337,7 +342,12 @@ class ProfileScreen extends StatelessWidget {
           ),
           child: Icon(icon1, color: iconColor),
         ),
-        title: Text(title),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
         trailing: trailingText != null
             ? Text(trailingText, style: TextStyle(color: color.primary))
             : Icon(icon2, size: 16),
@@ -371,5 +381,66 @@ class ProfileScreen extends StatelessWidget {
     if (path != null) {
       settings.setStorageLocation(path);
     }
+  }
+
+  Widget _buildActionCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required List<Color> colors,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            colors: colors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colors.last.withAlpha(80),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(60),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(icon, color: Colors.white, size: 28),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: Colors.white.withAlpha(220),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
