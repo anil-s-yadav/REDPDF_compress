@@ -249,35 +249,24 @@ class ProfileScreen extends StatelessWidget {
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
+              child: Column(
                 children: [
-                  Expanded(
-                    child: _buildActionCard(
-                      title: "Rate Us",
-                      subtitle: "Love the app?",
-                      icon: Icons.star_rounded,
-                      colors: [
-                        Colors.amber.shade400,
-                        Colors.deepOrange.shade400,
-                      ],
-                      onTap: () => _launchUrl(
-                        "https://play.google.com/store/apps/details?id=com.legendarysoftware.compress_pdf_redpdf",
-                      ),
+                  _buildActionTile(
+                    title: "Rate Us",
+                    subtitle: "Love the app? Leave a review!",
+                    icon: Icons.star_rounded,
+                    colors: [Colors.amber.shade400, Colors.deepOrange.shade400],
+                    onTap: () => _launchUrl(
+                      "https://play.google.com/store/apps/details?id=com.legendarysoftware.compress_pdf_redpdf",
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildActionCard(
-                      title: "More Apps",
-                      subtitle: "Try our tools",
-                      icon: Icons.dashboard_rounded,
-                      colors: [
-                        Colors.lightBlue.shade400,
-                        Colors.indigo.shade500,
-                      ],
-                      onTap: () => _launchUrl(
-                        "https://play.google.com/store/search?q=pub%3ALegendary%20Software%20Solutions&c=apps",
-                      ),
+                  _buildActionTile(
+                    title: "Try Our Other Apps",
+                    subtitle: "Discover more of our powerfull tools",
+                    icon: Icons.dashboard_rounded,
+                    colors: [Colors.lightBlue.shade400, Colors.indigo.shade500],
+                    onTap: () => _launchUrl(
+                      "https://play.google.com/store/search?q=pub%3ALegendary%20Software%20Solutions&c=apps",
                     ),
                   ),
                 ],
@@ -298,7 +287,7 @@ class ProfileScreen extends StatelessWidget {
 
             Text(
               "VERSION 1.1.11 (11) • A Product by - REDPDF",
-              style: TextStyle(fontSize: 12, color: color.text),
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
             const SizedBox(height: 20),
           ],
@@ -383,7 +372,7 @@ class ProfileScreen extends StatelessWidget {
     }
   }
 
-  Widget _buildActionCard({
+  Widget _buildActionTile({
     required String title,
     required String subtitle,
     required IconData icon,
@@ -393,49 +382,69 @@ class ProfileScreen extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(
             colors: colors,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
           ),
           boxShadow: [
             BoxShadow(
-              color: colors.last.withAlpha(80),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+              color: colors.last.withAlpha(60),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white.withAlpha(60),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, color: Colors.white, size: 28),
+              child: Icon(icon, color: Colors.white, size: 24),
             ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(220),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: Colors.white.withAlpha(220),
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(40),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.open_in_new,
+                color: Colors.white,
+                size: 16,
               ),
             ),
           ],

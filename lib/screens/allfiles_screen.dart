@@ -156,9 +156,11 @@ class _FilesScreenState extends State<FilesScreen>
             ),
             child: PopupMenuButton<String>(
               icon: Icon(Icons.more_horiz_rounded, color: color.text),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
+              // shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              // ),
+              color: color.bg,
+
               onSelected: (value) {
                 if (value == 'clear') {
                   _showClearHistoryDialog();
@@ -170,8 +172,11 @@ class _FilesScreenState extends State<FilesScreen>
                     value: 'clear',
                     child: Row(
                       children: [
-                        Icon(Icons.delete_sweep_rounded,
-                            color: Colors.red.shade400, size: 20),
+                        Icon(
+                          Icons.delete_sweep_rounded,
+                          color: Colors.red.shade400,
+                          size: 20,
+                        ),
                         const SizedBox(width: 10),
                         const Text('Clear History'),
                       ],
@@ -197,7 +202,9 @@ class _FilesScreenState extends State<FilesScreen>
           color: color.card,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isDark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(8),
+            color: isDark
+                ? Colors.white.withAlpha(10)
+                : Colors.black.withAlpha(8),
           ),
           boxShadow: [
             BoxShadow(
@@ -209,8 +216,11 @@ class _FilesScreenState extends State<FilesScreen>
         ),
         child: Row(
           children: [
-            Icon(Icons.search_rounded,
-                color: color.text.withAlpha(100), size: 22),
+            Icon(
+              Icons.search_rounded,
+              color: color.text.withAlpha(100),
+              size: 22,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: TextField(
@@ -218,8 +228,10 @@ class _FilesScreenState extends State<FilesScreen>
                 style: TextStyle(color: color.text, fontSize: 14),
                 decoration: InputDecoration(
                   hintText: "Search files...",
-                  hintStyle:
-                      TextStyle(color: color.text.withAlpha(80), fontSize: 14),
+                  hintStyle: TextStyle(
+                    color: color.text.withAlpha(80),
+                    fontSize: 14,
+                  ),
                   border: InputBorder.none,
                 ),
               ),
@@ -233,8 +245,11 @@ class _FilesScreenState extends State<FilesScreen>
                     color: color.text.withAlpha(15),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.close_rounded,
-                      color: color.text.withAlpha(120), size: 16),
+                  child: Icon(
+                    Icons.close_rounded,
+                    color: color.text.withAlpha(120),
+                    size: 16,
+                  ),
                 ),
               ),
           ],
@@ -304,9 +319,7 @@ class _FilesScreenState extends State<FilesScreen>
         .toList(growable: false);
 
     if (!history.isLoaded) {
-      return Center(
-        child: CircularProgressIndicator(color: pdfColor.primary),
-      );
+      return Center(child: CircularProgressIndicator(color: pdfColor.primary));
     }
 
     if (items.isEmpty) {
@@ -352,15 +365,17 @@ class _FilesScreenState extends State<FilesScreen>
               hasQuery
                   ? Icons.search_off_rounded
                   : (isPdf
-                      ? Icons.picture_as_pdf_outlined
-                      : Icons.image_outlined),
+                        ? Icons.picture_as_pdf_outlined
+                        : Icons.image_outlined),
               size: 48,
               color: color.primary.withAlpha(120),
             ),
           ),
           const SizedBox(height: 20),
           Text(
-            hasQuery ? "No results found" : "No ${isPdf ? 'PDFs' : 'images'} yet",
+            hasQuery
+                ? "No results found"
+                : "No ${isPdf ? 'PDFs' : 'images'} yet",
             style: TextStyle(
               color: color.text.withAlpha(160),
               fontSize: 16,
@@ -372,10 +387,7 @@ class _FilesScreenState extends State<FilesScreen>
             hasQuery
                 ? "Try a different search term"
                 : "Compressed ${isPdf ? 'PDFs' : 'images'} will appear here",
-            style: TextStyle(
-              color: color.text.withAlpha(90),
-              fontSize: 13,
-            ),
+            style: TextStyle(color: color.text.withAlpha(90), fontSize: 13),
           ),
         ],
       ),
@@ -428,7 +440,9 @@ class _FilesScreenState extends State<FilesScreen>
           color: pdfColor.card,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isDark ? Colors.white.withAlpha(8) : Colors.black.withAlpha(6),
+            color: isDark
+                ? Colors.white.withAlpha(8)
+                : Colors.black.withAlpha(6),
           ),
           boxShadow: [
             BoxShadow(
@@ -467,8 +481,11 @@ class _FilesScreenState extends State<FilesScreen>
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.access_time_rounded,
-                          size: 12, color: pdfColor.text.withAlpha(80)),
+                      Icon(
+                        Icons.access_time_rounded,
+                        size: 12,
+                        color: pdfColor.text.withAlpha(80),
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         date,
@@ -485,7 +502,9 @@ class _FilesScreenState extends State<FilesScreen>
                       // Size info
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: pdfColor.text.withAlpha(10),
                           borderRadius: BorderRadius.circular(8),
@@ -504,7 +523,9 @@ class _FilesScreenState extends State<FilesScreen>
                       if (savedPct != null)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -576,18 +597,12 @@ class _FilesScreenState extends State<FilesScreen>
       width: 52,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            accent.withAlpha(40),
-            accent.withAlpha(20),
-          ],
+          colors: [accent.withAlpha(40), accent.withAlpha(20)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: accent.withAlpha(30),
-          width: 1,
-        ),
+        border: Border.all(color: accent.withAlpha(30), width: 1),
       ),
       child: Icon(
         isPdf ? Icons.picture_as_pdf_rounded : Icons.image_rounded,
@@ -603,9 +618,7 @@ class _FilesScreenState extends State<FilesScreen>
       final file = File(item.outputPath);
       if (!file.existsSync()) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("File no longer exists at this path."),
-          ),
+          const SnackBar(content: Text("File no longer exists at this path.")),
         );
         return;
       }
@@ -620,9 +633,7 @@ class _FilesScreenState extends State<FilesScreen>
       final file = File(item.outputPath);
       if (!file.existsSync()) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Image no longer exists at this path."),
-          ),
+          const SnackBar(content: Text("Image no longer exists at this path.")),
         );
         return;
       }
@@ -646,9 +657,7 @@ class _FilesScreenState extends State<FilesScreen>
     if (!await f.exists()) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("File not found for sharing."),
-          ),
+          const SnackBar(content: Text("File not found for sharing.")),
         );
       }
       return;

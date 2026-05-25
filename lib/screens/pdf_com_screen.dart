@@ -24,21 +24,26 @@ class CompressPdfScreen extends StatefulWidget {
   State<CompressPdfScreen> createState() => _CompressPdfScreenState();
 }
 
-class _CompressPdfScreenState extends State<CompressPdfScreen> {
+class _CompressPdfScreenState extends State<CompressPdfScreen>
+    with SingleTickerProviderStateMixin {
   double compressionLevel =
       0.5; // UI: 0=Low (high quality) ... 1=High (smallest file)
   bool _useTargetSize = false;
   final TextEditingController _targetSizeCtrl = TextEditingController();
   final TextEditingController _outputNameCtrl = TextEditingController();
   String _targetSizeUnit = 'KB';
+  late TabController _modeTabController;
+  BoxDecoration? _tabIndicator;
+  Color? _tabIndicatorColor;
+  Widget? _cachedModeToggleWidget;
 
   File? _selectedPdf;
   int? _selectedBytes;
-  // final bool _isWorking = false;
   String? _error;
 
   @override
   void dispose() {
+    _modeTabController.dispose();
     _targetSizeCtrl.dispose();
     _outputNameCtrl.dispose();
     super.dispose();
@@ -49,6 +54,13 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
     super.initState();
     _selectedPdf = widget.initialFile;
     _selectedBytes = widget.initialBytes;
+
+    _modeTabController = TabController(length: 2, vsync: this);
+    _modeTabController.addListener(() {
+      if (!_modeTabController.indexIsChanging) {
+        setState(() => _useTargetSize = _modeTabController.index == 1);
+      }
+    });
 
     // Set default compression level from settings
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -72,10 +84,6 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
         return ratio.clamp(0.01, 0.99);
       }
     }
-    // Continuous heuristic matching actual PdfManipulator compression
-    // Level 0.0 (High Quality) -> ~50% of original
-    // Level 0.5 (Balanced) -> ~33% of original
-    // Level 1.0 (Smallest) -> ~15% of original
     return 0.50 - (compressionLevel * 0.30);
   }
 
@@ -117,6 +125,9 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Text('Password Protected'),
           content: TextField(
             obscureText: true,
@@ -313,6 +324,9 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  //  BUILD
+  // ═══════════════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -320,104 +334,98 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
 
     return Scaffold(
       backgroundColor: colors.bg,
-      // bottomNavigationBar: _bottomNav(isDark),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            spacing: 20,
-            children: [
-              Text(
-                "Compress PDF",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black,
-                ),
-              ),
+        child: Column(
+          children: [
+            // ── App Bar ──
+            _appBar(colors),
 
-              _modeToggle(isDark),
-              _fileCard(isDark),
-
-              _useTargetSize
-                  ? _targetSizeInput(isDark)
-                  : _compressionSlider(isDark),
-
-              _outputNameInput(isDark),
-
-              if (!_useTargetSize) _estimatedCard(isDark),
-              _compressButton(),
-              // _premiumCard(),
-
-              // _securityNote(isDark),
-              if (_error != null) ...[
-                const SizedBox(height: 14),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: colors.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Text(_error!, style: TextStyle(color: colors.text)),
-                ),
-              ], // end if
-            ], // end children
-          ), // end Column
-        ), // end Center
-      ), // end SafeArea
-    ); // end Scaffold
-  }
-
-  Widget _modeToggle(bool isDark) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey.shade900 : Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _useTargetSize = false),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: !_useTargetSize ? Colors.red : Colors.transparent,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(
-                  "By Level",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: !_useTargetSize ? Colors.white : Colors.grey,
-                    fontWeight: FontWeight.bold,
-                  ),
+            // ── Scrollable Content ──
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                child: Column(
+                  children: [
+                    _fileCard(colors, isDark),
+                    const SizedBox(height: 40),
+                    _modeToggle(colors, isDark),
+                    const SizedBox(height: 16),
+                    _useTargetSize
+                        ? _targetSizeInput(colors, isDark)
+                        : _compressionSlider(colors, isDark),
+                    const SizedBox(height: 16),
+                    _outputNameInput(colors, isDark),
+                    // const SizedBox(height: 20),
+                    // _compressButton(colors),
+                    if (_error != null) ...[
+                      const SizedBox(height: 14),
+                      _errorCard(colors),
+                    ],
+                  ],
                 ),
               ),
             ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _useTargetSize = true),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: _useTargetSize ? Colors.red : Colors.transparent,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(
-                  "Target Size",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _useTargetSize ? Colors.white : Colors.grey,
-                    fontWeight: FontWeight.bold,
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── App Bar ────────────────────────────────────────────────────
+  Widget _appBar(AppColors colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: colors.card,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(8),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                ),
+                ],
               ),
+              child: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 18,
+                color: colors.text,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              "Compress PDF",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: colors.text,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  colors.primary.withAlpha(30),
+                  colors.primary.withAlpha(15),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              Icons.picture_as_pdf_rounded,
+              size: 22,
+              color: colors.primary,
             ),
           ),
         ],
@@ -425,12 +433,485 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
     );
   }
 
-  Widget _targetSizeInput(bool isDark) {
+  // ─── File Card ──────────────────────────────────────────────────
+  Widget _fileCard(AppColors colors, bool isDark) {
+    final file = _selectedPdf;
+    final name = file == null ? 'No PDF selected' : file.uri.pathSegments.last;
+    final bytes = _selectedBytes;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey.shade900 : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: colors.card,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: isDark ? Colors.white.withAlpha(8) : Colors.black.withAlpha(6),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colors.primary.withAlpha(isDark ? 10 : 12),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        spacing: 6,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.insert_drive_file_rounded,
+                size: 14,
+                color: colors.primary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                "SELECTED FILE",
+                style: TextStyle(
+                  color: colors.primary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              // PDF icon
+              Container(
+                height: 52,
+                width: 52,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      colors.primary.withAlpha(35),
+                      colors.primary.withAlpha(18),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: colors.primary.withAlpha(25)),
+                ),
+                child: Icon(
+                  Icons.picture_as_pdf_rounded,
+                  color: colors.primary,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 14),
+              // File info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        color: colors.text,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      bytes == null
+                          ? "Tap to select a PDF"
+                          : _formatBytes(bytes),
+                      style: TextStyle(
+                        color: colors.text.withAlpha(100),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Change button
+              GestureDetector(
+                onTap: _pickPdf,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: colors.primary.withAlpha(15),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    Icons.swap_horiz_rounded,
+                    color: colors.primary,
+                    size: 22,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // ── Estimated size row ──
+          if (_selectedBytes != null) ...[
+            Padding(
+              padding: const EdgeInsets.only(top: 14),
+              child: _estimatedRow(colors, isDark),
+            ),
+          ],
+          const SizedBox(width: 14),
+          Row(
+            spacing: 10,
+            children: [
+              Icon(Icons.info_outline, size: 14, color: Colors.orange),
+              Text(
+                "Output file may be slightly smaller or bigger.",
+                style: TextStyle(fontSize: 11, color: Colors.orange),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _estimatedRow(AppColors colors, bool isDark) {
+    final bytes = _selectedBytes;
+    final estBytes = bytes == null ? null : (bytes * _estimatedRatio()).round();
+    final savedPct = (bytes == null || estBytes == null || bytes == 0)
+        ? null
+        : (((bytes - estBytes) / bytes) * 100).clamp(0, 99.9);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withAlpha(6) : colors.primary.withAlpha(8),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colors.primary.withAlpha(isDark ? 15 : 20)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.auto_awesome_rounded,
+            size: 16,
+            color: colors.primary.withAlpha(180),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            bytes == null ? "0 B" : _formatBytes(bytes),
+            style: TextStyle(
+              color: colors.text.withAlpha(120),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Icon(
+              Icons.arrow_forward_rounded,
+              size: 14,
+              color: colors.primary.withAlpha(100),
+            ),
+          ),
+          Text(
+            estBytes == null ? "—" : "~${_formatBytes(estBytes)}",
+            style: TextStyle(
+              color: colors.primary,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+          const Spacer(),
+          if (savedPct != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.green.shade400, Colors.green.shade600],
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                "-${savedPct.toStringAsFixed(0)}%",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Mode Toggle ────────────────────────────────────────────────
+  BoxDecoration _getTabIndicator(AppColors colors) {
+    if (_tabIndicator != null && _tabIndicatorColor == colors.primary) {
+      return _tabIndicator!;
+    }
+    _tabIndicatorColor = colors.primary;
+    _tabIndicator = BoxDecoration(
+      color: colors.primary,
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: [
+        BoxShadow(
+          color: colors.primary.withAlpha(60),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    );
+    return _tabIndicator!;
+  }
+
+  Widget _modeToggle(AppColors colors, bool isDark) {
+    if (_cachedModeToggleWidget != null &&
+        _tabIndicatorColor == colors.primary) {
+      return _cachedModeToggleWidget!;
+    }
+
+    _cachedModeToggleWidget = Container(
+      height: 48,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withAlpha(8) : Colors.black.withAlpha(8),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: TabBar(
+        controller: _modeTabController,
+        indicator: _getTabIndicator(colors),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        labelColor: Colors.white,
+        unselectedLabelColor: colors.text.withAlpha(120),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        unselectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+        tabs: const [
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.tune_rounded, size: 18),
+                SizedBox(width: 8),
+                Text("By Level"),
+              ],
+            ),
+          ),
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.crop_free_rounded, size: 18),
+                SizedBox(width: 8),
+                Text("Target Size"),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return _cachedModeToggleWidget!;
+  }
+
+  // ─── Compression Slider ─────────────────────────────────────────
+  Widget _compressionSlider(AppColors colors, bool isDark) {
+    final isLow = compressionLevel <= 0.34;
+    final isBalanced = compressionLevel > 0.34 && compressionLevel <= 0.67;
+    final isHigh = compressionLevel > 0.67;
+
+    String levelLabel = isLow
+        ? 'Low'
+        : isBalanced
+        ? 'Balanced'
+        : 'High';
+    String levelDesc = isLow
+        ? 'Best quality, larger file'
+        : isBalanced
+        ? 'Good balance of size & quality'
+        : 'Smallest file, lower quality';
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colors.card,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: isDark ? Colors.white.withAlpha(8) : Colors.black.withAlpha(6),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 20 : 5),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Compression Level",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: colors.text,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.primary.withAlpha(20),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  levelLabel,
+                  style: TextStyle(
+                    color: colors.primary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            levelDesc,
+            style: TextStyle(color: colors.text.withAlpha(100), fontSize: 12),
+          ),
+          const SizedBox(height: 16),
+
+          // Slider
+          SliderTheme(
+            data: SliderThemeData(
+              activeTrackColor: colors.primary,
+              inactiveTrackColor: colors.primary.withAlpha(30),
+              thumbColor: colors.primary,
+              overlayColor: colors.primary.withAlpha(30),
+              trackHeight: 6,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+            ),
+            child: Slider(
+              value: compressionLevel,
+              onChanged: (v) => setState(() => compressionLevel = v),
+            ),
+          ),
+
+          // Labels
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "High Quality",
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colors.text.withAlpha(80),
+                  ),
+                ),
+                Text(
+                  "Smallest File",
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colors.text.withAlpha(80),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Quick presets
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withAlpha(8)
+                  : Colors.black.withAlpha(6),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                _presetChip("Low", 0.2, isLow, colors, isDark),
+                _presetChip("Balanced", 0.5, isBalanced, colors, isDark),
+                _presetChip("High", 0.8, isHigh, colors, isDark),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _presetChip(
+    String label,
+    double value,
+    bool isActive,
+    AppColors colors,
+    bool isDark,
+  ) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => compressionLevel = value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 60),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isActive ? colors.card : Colors.transparent,
+            borderRadius: BorderRadius.circular(13),
+            boxShadow: [
+              BoxShadow(
+                color: isActive
+                    ? Colors.black.withAlpha(isDark ? 30 : 10)
+                    : Colors.transparent,
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isActive ? colors.primary : colors.text.withAlpha(100),
+              fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Target Size Input ──────────────────────────────────────────
+  Widget _targetSizeInput(AppColors colors, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colors.card,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: isDark ? Colors.white.withAlpha(8) : Colors.black.withAlpha(6),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 20 : 5),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -439,11 +920,11 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
             "Target Size",
             style: TextStyle(
               fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : Colors.black,
+              fontWeight: FontWeight.w700,
+              color: colors.text,
             ),
           ),
-          const SizedBox(height: 15),
+          const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
@@ -453,16 +934,16 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
                     decimal: true,
                   ),
                   onChanged: (val) => setState(() {}),
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  style: TextStyle(color: colors.text),
                   decoration: InputDecoration(
                     hintText: "Enter target size...",
-                    hintStyle: TextStyle(color: Colors.grey.shade500),
+                    hintStyle: TextStyle(color: colors.text.withAlpha(80)),
                     filled: true,
                     fillColor: isDark
-                        ? Colors.grey.shade800
-                        : Colors.grey.shade100,
+                        ? Colors.white.withAlpha(8)
+                        : Colors.black.withAlpha(6),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide.none,
                     ),
                     contentPadding: const EdgeInsets.symmetric(
@@ -474,17 +955,19 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
               ),
               const SizedBox(width: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(12),
+                  color: isDark
+                      ? Colors.white.withAlpha(8)
+                      : Colors.black.withAlpha(6),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _targetSizeUnit,
-                    dropdownColor: isDark ? Colors.grey.shade800 : Colors.white,
+                    dropdownColor: colors.card,
                     style: TextStyle(
-                      color: isDark ? Colors.white : Colors.black,
+                      color: colors.primary,
                       fontWeight: FontWeight.bold,
                     ),
                     items: const [
@@ -504,14 +987,14 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.info_outline, size: 14, color: Colors.amber.shade700),
+              Icon(Icons.info_outline_rounded, size: 14, color: Colors.orange),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   "We will try to compress nearest to the target.",
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.amber.shade700,
+                    color: Colors.orange,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -523,456 +1006,199 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
     );
   }
 
-  Widget _compressionSlider(bool isDark) {
-    final isLow = compressionLevel <= 0.34;
-    final isBalanced = compressionLevel > 0.34 && compressionLevel <= 0.67;
-    final isHigh = compressionLevel > 0.67;
-
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.grey.shade900 : Colors.white,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Compression Level",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : Colors.black,
-                  ),
-                ),
-              ),
-              Slider(
-                value: compressionLevel,
-                onChanged: (v) => setState(() => compressionLevel = v),
-                activeColor: Colors.red,
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "High Quality",
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  const Text(
-                    "Best Balance",
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  const Text(
-                    "Smallest File",
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 30),
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    GestureDetector(
-                      onTap: () => setState(() => compressionLevel = 0.2),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isLow
-                              ? (isDark ? Colors.grey.shade700 : Colors.white)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: isLow && !isDark
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.1),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ]
-                              : [],
-                        ),
-                        child: Text(
-                          "Low",
-                          style: TextStyle(
-                            color: isLow ? Colors.red : Colors.grey,
-                            fontWeight: isLow ? FontWeight.bold : null,
-                          ),
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => setState(() => compressionLevel = 0.5),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isBalanced
-                              ? (isDark ? Colors.grey.shade700 : Colors.white)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: isBalanced && !isDark
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.1),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ]
-                              : [],
-                        ),
-                        child: Text(
-                          "Balanced",
-                          style: TextStyle(
-                            color: isBalanced ? Colors.red : Colors.grey,
-                            fontWeight: isBalanced ? FontWeight.bold : null,
-                          ),
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => setState(() => compressionLevel = 0.8),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isHigh
-                              ? (isDark ? Colors.grey.shade700 : Colors.white)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: isHigh && !isDark
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.1),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ]
-                              : [],
-                        ),
-                        child: Text(
-                          "High",
-                          style: TextStyle(
-                            color: isHigh ? Colors.red : Colors.grey,
-                            fontWeight: isHigh ? FontWeight.bold : null,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _fileCard(bool isDark) {
-    final file = _selectedPdf;
-    final name = file == null ? 'No PDF selected' : file.uri.pathSegments.last;
-    final bytes = _selectedBytes;
+  // ─── Output Name Input ──────────────────────────────────────────
+  Widget _outputNameInput(AppColors colors, bool isDark) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey.shade900 : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "CURRENT SELECTION",
-                style: TextStyle(color: Colors.red, fontSize: 12),
-              ),
-              // InkWell(
-              //   onTap: _isWorking ? null : _pickPdf,
-              //   child: const Text(
-              //     "Change/Reselect",
-              //     style: TextStyle(color: Colors.red),
-              //   ),
-              // ),
-            ],
-          ),
-          const SizedBox(height: 15),
-          Row(
-            children: [
-              Container(
-                height: 45,
-                width: 45,
-                decoration: BoxDecoration(
-                  color: Colors.red.shade100,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.picture_as_pdf, color: Colors.red),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black,
-                      ),
-                    ),
-                    Text(
-                      bytes == null
-                          ? "Tap “Change/Reselect” to choose a PDF"
-                          : _formatBytes(bytes),
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: _pickPdf,
-                icon: Icon(Icons.refresh, color: Colors.blue),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _compressButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 55,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-        ),
-        onPressed: _compress,
-        child: Text(
-          "Compress Now",
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _estimatedCard(bool isDark) {
-    final bytes = _selectedBytes;
-    final estBytes = bytes == null ? null : (bytes * _estimatedRatio()).round();
-    final savedPct = (bytes == null || estBytes == null || bytes == 0)
-        ? null
-        : (((bytes - estBytes) / bytes) * 100).clamp(0, 99.9);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey.shade900 : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: colors.card,
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+          color: isDark ? Colors.white.withAlpha(8) : Colors.black.withAlpha(6),
         ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    bytes == null ? "0 B" : _formatBytes(bytes),
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 14,
-                    color: Colors.red.withValues(alpha: 0.5),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    estBytes == null ? "—" : "~${_formatBytes(estBytes)}",
-                    style: const TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  estBytes == null ? "—" : "-${savedPct?.toStringAsFixed(0)}%",
-                  style: const TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
-
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: (bytes == null || estBytes == null || bytes == 0)
-                  ? 0
-                  : (estBytes / bytes).clamp(0.0, 1.0),
-
-              minHeight: 4,
-              backgroundColor: isDark ? Colors.black26 : Colors.grey.shade100,
-              color: Colors.red.shade300,
-            ),
-          ),
-          const SizedBox(height: 5),
-          Row(
-            children: [
-              Icon(Icons.info_outline, size: 14, color: Colors.grey.shade500),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  "Output file may be more smaller or bigger also.",
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Widget _premiumCard() {
-  //   return Container(
-  //     padding: const EdgeInsets.all(16),
-  //     decoration: BoxDecoration(
-  //       gradient: const LinearGradient(
-  //         colors: [Color(0xFF001F3F), Color(0xFF003366)],
-  //       ),
-  //       borderRadius: BorderRadius.circular(20),
-  //     ),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         const Text(
-  //           "Lossless Compression",
-  //           style: TextStyle(
-  //             color: Colors.white,
-  //             fontWeight: FontWeight.bold,
-  //             fontSize: 16,
-  //           ),
-  //         ),
-  //         const SizedBox(height: 6),
-  //         const Text(
-  //           "Unlock ultra-precise compression that preserves vector clarity and metadata.",
-  //           style: TextStyle(color: Colors.grey),
-  //         ),
-  //         const SizedBox(height: 15),
-  //         SizedBox(
-  //           width: double.infinity,
-  //           child: ElevatedButton(
-  //             style: ElevatedButton.styleFrom(
-  //               backgroundColor: Colors.yellow,
-  //               foregroundColor: Colors.black,
-  //               shape: RoundedRectangleBorder(
-  //                 borderRadius: BorderRadius.circular(25),
-  //               ),
-  //             ),
-  //             onPressed: () {},
-  //             child: const Text("Upgrade to Premium"),
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
-  Widget _outputNameInput(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey.shade900 : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-        ),
-      ),
-      child: Column(
+        spacing: 10,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.edit_document, size: 18, color: Colors.grey.shade500),
+              Icon(
+                Icons.edit_rounded,
+                size: 16,
+                color: colors.text.withAlpha(120),
+              ),
               const SizedBox(width: 8),
               Text(
-                "Output File Name (Optional)",
+                "Output File Name",
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : Colors.black,
+                  color: colors.text,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                "(optional)",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colors.text.withAlpha(80),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+
           TextField(
             controller: _outputNameCtrl,
-            style: TextStyle(
-              color: isDark ? Colors.white : Colors.black,
-              fontSize: 14,
-            ),
+            style: TextStyle(color: colors.text, fontSize: 14),
             decoration: InputDecoration(
               hintText: "e.g. MyCompressedFile",
-              hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+              hintStyle: TextStyle(
+                color: colors.text.withAlpha(80),
+                fontSize: 14,
+              ),
               filled: true,
-              fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+              fillColor: isDark
+                  ? Colors.white.withAlpha(8)
+                  : Colors.black.withAlpha(6),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide.none,
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 12,
               ),
+            ),
+          ),
+
+          // _compressButton(colors),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [colors.primary, colors.accent],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: colors.primary.withAlpha(80),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                onPressed: _compress,
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.compress_rounded, color: Colors.white, size: 22),
+                    SizedBox(width: 10),
+                    Text(
+                      "Compress Now",
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Compress Button ────────────────────────────────────────────
+  // Widget _compressButton(AppColors colors) {
+  //   return SizedBox(
+  //     width: double.infinity,
+  //     height: 56,
+  //     child: DecoratedBox(
+  //       decoration: BoxDecoration(
+  //         gradient: LinearGradient(
+  //           colors: [colors.primary, colors.accent],
+  //           begin: Alignment.centerLeft,
+  //           end: Alignment.centerRight,
+  //         ),
+  //         borderRadius: BorderRadius.circular(20),
+  //         boxShadow: [
+  //           BoxShadow(
+  //             color: colors.primary.withAlpha(80),
+  //             blurRadius: 16,
+  //             offset: const Offset(0, 6),
+  //           ),
+  //         ],
+  //       ),
+  //       child: ElevatedButton(
+  //         style: ElevatedButton.styleFrom(
+  //           backgroundColor: Colors.transparent,
+  //           shadowColor: Colors.transparent,
+  //           shape: RoundedRectangleBorder(
+  //             borderRadius: BorderRadius.circular(20),
+  //           ),
+  //         ),
+  //         onPressed: _compress,
+  //         child: const Row(
+  //           mainAxisAlignment: MainAxisAlignment.center,
+  //           children: [
+  //             Icon(Icons.compress_rounded, color: Colors.white, size: 22),
+  //             SizedBox(width: 10),
+  //             Text(
+  //               "Compress Now",
+  //               style: TextStyle(
+  //                 fontSize: 17,
+  //                 fontWeight: FontWeight.bold,
+  //                 color: Colors.white,
+  //                 letterSpacing: -0.3,
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
+
+  // ─── Error Card ─────────────────────────────────────────────────
+  Widget _errorCard(AppColors colors) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.red.withAlpha(15),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.red.withAlpha(40)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.error_outline_rounded,
+            color: Colors.red.shade400,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _error!,
+              style: TextStyle(color: Colors.red.shade400, fontSize: 13),
             ),
           ),
         ],
