@@ -25,34 +25,33 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: color.bg,
       appBar: AppBar(
-        title: Row(
-          children: [
-            Text(
-              "A product by: ",
-              style: TextStyle(
-                color: Colors.grey,
-                // fontWeight: FontWeight.bold,
-                fontSize: 13,
+        title: GestureDetector(
+          onTap: () => _launchUrl(
+            "https://play.google.com/store/apps/details?id=com.legendarysoftware.compress_pdf_redpdf",
+          ),
+          child: Row(
+            children: [
+              Text(
+                "A product by:  ",
+                style: TextStyle(color: Colors.grey, fontSize: 13),
               ),
-            ),
-            Icon(Icons.picture_as_pdf, color: color.primary),
-            const SizedBox(width: 8),
-            Text(
-              "RedPDF",
-              style: TextStyle(
-                color: color.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
+              Image.asset(
+                'lib/assets/google-play-store-icon.png',
+                height: 20,
+                errorBuilder: (context, error, stackTrace) =>
+                    const Icon(Icons.shop, size: 20, color: Colors.grey),
               ),
-            ),
-            const Spacer(),
-            IconButton(
-              onPressed: () => _launchUrl(
-                "https://play.google.com/store/apps/details?id=com.legendarysoftware.compress_pdf_redpdf",
+              // const SizedBox(width: 8),
+              Text(
+                " RedPDF",
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
-              icon: Icon(Icons.star_border, color: Colors.orange),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -260,15 +259,7 @@ class ProfileScreen extends StatelessWidget {
                       "https://play.google.com/store/apps/details?id=com.legendarysoftware.compress_pdf_redpdf",
                     ),
                   ),
-                  _buildActionTile(
-                    title: "Try Our Other Apps",
-                    subtitle: "Discover more of our powerfull tools",
-                    icon: Icons.dashboard_rounded,
-                    colors: [Colors.lightBlue.shade400, Colors.indigo.shade500],
-                    onTap: () => _launchUrl(
-                      "https://play.google.com/store/search?q=pub%3ALegendary%20Software%20Solutions&c=apps",
-                    ),
-                  ),
+                  _otherAppsTile(color),
                 ],
               ),
             ),
@@ -285,7 +276,7 @@ class ProfileScreen extends StatelessWidget {
             // ),
             const SizedBox(height: 10),
             Text(
-              "VERSION 1.1.12 (12) • A Product by - REDPDF",
+              "VERSION 1.1.0 (13) • A Product by - REDPDF",
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
             const SizedBox(height: 20),
@@ -297,14 +288,14 @@ class ProfileScreen extends StatelessWidget {
 
   // Card Wrapper
   Widget _card(Color color, {required Widget child}) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Material(
         color: color,
         borderRadius: BorderRadius.circular(20),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(padding: const EdgeInsets.all(8), child: child),
       ),
-      child: child,
     );
   }
 
@@ -447,6 +438,125 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _otherAppsTile(AppColors color) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: color.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: color.primary.withValues(alpha: 0.22),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.09),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: color.primary.withValues(alpha: 0.14),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () => _launchUrl(
+            'https://play.google.com/store/apps/dev?id=8832237281097064209',
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  height: 46,
+                  width: 46,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Image.asset(
+                    'lib/assets/google-play-store-icon.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              "More Apps",
+                              style: TextStyle(
+                                color: color.text,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              "RedPDF",
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        "Google Play Store • More Tools",
+                        style: TextStyle(
+                          color: color.text.withAlpha(150),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.primary.withValues(alpha: 0.08),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: color.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
