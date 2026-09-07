@@ -1,5 +1,5 @@
 import 'package:compress_pdf_redpdf/theme/app_theme.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:saf/saf.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -27,7 +27,7 @@ class ProfileScreen extends StatelessWidget {
       appBar: AppBar(
         title: GestureDetector(
           onTap: () => _launchUrl(
-            "https://play.google.com/store/apps/details?id=com.legendarysoftware.compress_pdf_redpdf",
+            "https://play.google.com/store/apps/details?id=com.legendarysoftware.redpdf.imagetopdf",
           ),
           child: Row(
             children: [
@@ -200,7 +200,11 @@ class ProfileScreen extends StatelessWidget {
                           ),
                           title: const Text("Storage Location"),
                           subtitle: Text(
-                            settings.storageLocation,
+                            settings.storageLocation.startsWith('content://')
+                                ? Uri.decodeComponent(
+                                    settings.storageLocation.split('%3A').last,
+                                  )
+                                : settings.storageLocation,
                             style: const TextStyle(fontSize: 12),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -276,7 +280,7 @@ class ProfileScreen extends StatelessWidget {
             // ),
             const SizedBox(height: 10),
             Text(
-              "VERSION 1.1.0 (13) • A Product by - REDPDF",
+              "VERSION 1.1.1 (14) • A Product by - REDPDF",
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
             const SizedBox(height: 20),
@@ -356,9 +360,10 @@ class ProfileScreen extends StatelessWidget {
     BuildContext context,
     SettingsProvider settings,
   ) async {
-    final path = await FilePicker.platform.getDirectoryPath();
-    if (path != null) {
-      settings.setStorageLocation(path);
+    final saf = Saf();
+    final dir = await saf.pickDirectory();
+    if (dir != null) {
+      settings.setStorageLocation(dir.uri);
     }
   }
 

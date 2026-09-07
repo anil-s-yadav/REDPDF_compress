@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:saf/saf.dart';
 import '../utils/media_store_helper.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -297,11 +298,23 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
             final mime = selectedFormat == 'png'
                 ? 'image/png'
                 : (selectedFormat == 'webp' ? 'image/webp' : 'image/jpeg');
-            final savedPath = await MediaStoreHelper.saveFileToDownloads(
-              tempFilePath: tempFile.path,
-              fileName: outFileName,
-              mimeType: mime,
-            );
+            final settings = ctx.read<SettingsProvider>();
+            String? savedPath;
+            if (settings.storageLocation.startsWith('content://')) {
+              final doc = await Saf().pasteLocalFile(
+                tempFile.path,
+                settings.storageLocation,
+                outFileName,
+                mime,
+              );
+              savedPath = doc?.uri;
+            } else {
+              savedPath = await MediaStoreHelper.saveFileToDownloads(
+                tempFilePath: tempFile.path,
+                fileName: outFileName,
+                mimeType: mime,
+              );
+            }
             
             if (savedPath == null) throw Exception("Failed to save image to device storage");
             File savedFile = File(savedPath);

@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:saf/saf.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'package:compress_pdf_redpdf/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -613,39 +615,46 @@ class _FilesScreenState extends State<FilesScreen>
   }
 
   // ─── Actions ────────────────────────────────────────────────────
-  Future<void> _openFile(CompressionHistoryItem item, bool isPdf) async {
-    if (isPdf) {
-      final file = File(item.outputPath);
-      if (!file.existsSync()) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("File no longer exists at this path.")),
-        );
-        return;
-      }
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) =>
-              PdfViewScreen(title: item.title, path: item.outputPath),
-        ),
-      );
+  Future<String?> _getReadablePath(CompressionHistoryItem item) async {
+    if (item.outputPath.startsWith('content://')) {
+      if (!await Saf().exists(item.outputPath)) return null;
+      final tempDir = await getTemporaryDirectory();
+      final ext = item.kind == CompressionKind.pdf ? '.pdf' : '.jpg';
+      final tempPath = '${tempDir.path}/temp_${DateTime.now().millisecondsSinceEpoch}$ext';
+      await Saf().copyToLocalFile(item.outputPath, tempPath);
+      return tempPath;
     } else {
-      final file = File(item.outputPath);
-      if (!file.existsSync()) {
+      if (!File(item.outputPath).existsSync()) return null;
+      return item.outputPath;
+    }
+  }
+
+  Future<void> _openFile(CompressionHistoryItem item, bool isPdf) async {
+    final readablePath = await _getReadablePath(item);
+    if (readablePath == null) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Image no longer exists at this path.")),
+          SnackBar(content: Text("${isPdf ? 'PDF' : 'Image'} no longer exists at this path.")),
         );
-        return;
       }
-      final result = await OpenFilex.open(item.outputPath);
-      if (result.type != ResultType.done && context.mounted) {
+      return;
+    }
+
+    if (isPdf) {
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PdfViewScreen(title: item.title, path: readablePath),
+          ),
+        );
+      }
+    } else {
+      final result = await OpenFilex.open(readablePath);
+      if (result.type != ResultType.done && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              result.message.isNotEmpty
-                  ? result.message
-                  : 'Could not open file.',
-            ),
+            content: Text(result.message.isNotEmpty ? result.message : 'Could not open file.'),
           ),
         );
       }
@@ -653,16 +662,16 @@ class _FilesScreenState extends State<FilesScreen>
   }
 
   Future<void> _shareFile(CompressionHistoryItem item) async {
-    final f = File(item.outputPath);
-    if (!await f.exists()) {
-      if (context.mounted) {
+    final readablePath = await _getReadablePath(item);
+    if (readablePath == null) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("File not found for sharing.")),
         );
       }
       return;
     }
-    await Share.shareXFiles([XFile(item.outputPath)]);
+    await Share.shareXFiles([XFile(readablePath)]);
   }
 
   void _showClearHistoryDialog() {
@@ -708,9 +717,13 @@ class _FilesScreenState extends State<FilesScreen>
           TextButton(
             onPressed: () async {
               try {
-                final file = File(item.outputPath);
-                if (await file.exists()) {
-                  await file.delete();
+                if (item.outputPath.startsWith('content://')) {
+                  await Saf().delete(item.outputPath);
+                } else {
+                  final file = File(item.outputPath);
+                  if (await file.exists()) {
+                    await file.delete();
+                  }
                 }
               } catch (e) {
                 debugPrint("Error deleting file: $e");

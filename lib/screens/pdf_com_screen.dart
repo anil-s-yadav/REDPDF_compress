@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:saf/saf.dart';
 import '../utils/media_store_helper.dart';
 
 import 'package:compress_pdf_redpdf/providers/pdf_provider.dart';
@@ -284,13 +285,26 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
             }
 
             // Always copy to our app's storage location for History & SuccessScreen
-            final savedPath = await MediaStoreHelper.saveFileToDownloads(
-              tempFilePath: outFile.path,
-              fileName: newFileName,
-              mimeType: 'application/pdf',
-            );
-            
-            if (savedPath == null) throw Exception("Failed to save to device storage");
+            final settings = ctx.read<SettingsProvider>();
+            String? savedPath;
+            if (settings.storageLocation.startsWith('content://')) {
+              final doc = await Saf().pasteLocalFile(
+                outFile.path,
+                settings.storageLocation,
+                newFileName,
+                'application/pdf',
+              );
+              savedPath = doc.uri;
+            } else {
+              savedPath = await MediaStoreHelper.saveFileToDownloads(
+                tempFilePath: outFile.path,
+                fileName: newFileName,
+                mimeType: 'application/pdf',
+              );
+            }
+
+            if (savedPath == null)
+              throw Exception("Failed to save to device storage");
             File savedFile = File(savedPath);
 
             final saved = savedFile;
