@@ -37,3 +37,6 @@
 
 # BouncyCastle LDAP/JNDI dependencies
 -dontwarn javax.naming.**
+
+# Flutter Local Notifications
+-keep class com.dexterous.flutterlocalnotifications.** { *; }

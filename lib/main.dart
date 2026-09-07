@@ -14,9 +14,13 @@ import 'package:provider/provider.dart';
 import 'providers/history_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/settings_provider.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize daily reminder local notifications
+  await NotificationService.instance.initialize();
 
   runApp(
     MultiProvider(

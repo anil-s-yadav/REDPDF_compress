@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:compress_pdf_redpdf/utils/media_scan_helper.dart';
+import '../utils/media_store_helper.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -227,7 +227,6 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
           title: 'Processing Image',
           processTask: (ctx) async {
             final beforeBytes = await src.length();
-            final settings = ctx.read<SettingsProvider>();
 
             final tempDir = await getTemporaryDirectory();
             final stamp = DateTime.now().millisecondsSinceEpoch;
@@ -295,16 +294,17 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
             final afterBytes = await tempFile.length();
 
             // Copy to app's storage location
-            final targetDir = Directory(settings.storageLocation);
-            if (!await targetDir.exists()) {
-              await targetDir.create(recursive: true);
-            }
-            final finalPath =
-                '${targetDir.path}${Platform.pathSeparator}$outFileName';
-            File savedFile = await tempFile.copy(finalPath);
-
-            // Notify Android MediaStore so the file appears in file managers/gallery
-            await MediaScanHelper.scanFile(finalPath);
+            final mime = selectedFormat == 'png'
+                ? 'image/png'
+                : (selectedFormat == 'webp' ? 'image/webp' : 'image/jpeg');
+            final savedPath = await MediaStoreHelper.saveFileToDownloads(
+              tempFilePath: tempFile.path,
+              fileName: outFileName,
+              mimeType: mime,
+            );
+            
+            if (savedPath == null) throw Exception("Failed to save image to device storage");
+            File savedFile = File(savedPath);
 
             ctx.read<HistoryProvider>().add(
               CompressionHistoryItem(

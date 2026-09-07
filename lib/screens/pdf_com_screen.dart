@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:compress_pdf_redpdf/utils/media_scan_helper.dart';
+import '../utils/media_store_helper.dart';
 
 import 'package:compress_pdf_redpdf/providers/pdf_provider.dart';
 import 'package:compress_pdf_redpdf/screens/success_screen.dart';
@@ -229,7 +229,6 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
           title: 'Processing PDF',
           processTask: (ctx) async {
             final beforeBytes = await src.length();
-            final settings = ctx.read<SettingsProvider>();
 
             // Get temporary directory for initial compression
             final tempDir = await getTemporaryDirectory();
@@ -285,15 +284,14 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
             }
 
             // Always copy to our app's storage location for History & SuccessScreen
-            final targetDir = Directory(settings.storageLocation);
-            if (!await targetDir.exists()) {
-              await targetDir.create(recursive: true);
-            }
-            final finalPath = '${targetDir.path}/$newFileName';
-            File savedFile = await outFile.copy(finalPath);
-
-            // Notify Android MediaStore so the file appears in file managers
-            await MediaScanHelper.scanFile(finalPath);
+            final savedPath = await MediaStoreHelper.saveFileToDownloads(
+              tempFilePath: outFile.path,
+              fileName: newFileName,
+              mimeType: 'application/pdf',
+            );
+            
+            if (savedPath == null) throw Exception("Failed to save to device storage");
+            File savedFile = File(savedPath);
 
             final saved = savedFile;
 
