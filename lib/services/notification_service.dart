@@ -108,7 +108,7 @@ class NotificationService {
         tz.setLocalLocation(tz.getLocation(timezoneInfo.identifier));
       } catch (e) {
         developer.log(
-          "Could not detect local timezone, falling back to local: $e",
+          "Could not detect local timezone: $e",
           name: "NotificationService",
         );
       }
@@ -132,7 +132,7 @@ class NotificationService {
         onDidReceiveNotificationResponse: _onNotificationTapped,
       );
 
-      // 3. Create high-priority notification channel for Android
+      // 3. Create high-importance notification channel for Android
       final androidPlatform = _notificationsPlugin
           .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>();
@@ -142,7 +142,9 @@ class NotificationService {
           _channelId,
           _channelName,
           description: _channelDescription,
-          importance: Importance.defaultImportance,
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
         );
         await androidPlatform.createNotificationChannel(channel);
       }
@@ -161,17 +163,45 @@ class NotificationService {
     }
   }
 
-  /// Asynchronously request notification permission and schedule reminders.
-  Future<void> _requestPermissionsAndSchedule() async {
+  /// Explicitly request notification permissions (returns true if granted).
+  Future<bool> requestPermission() async {
     try {
       final androidPlatform = _notificationsPlugin
           .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>();
 
       if (androidPlatform != null) {
-        await androidPlatform.requestNotificationsPermission();
+        final granted = await androidPlatform.requestNotificationsPermission();
+        return granted ?? false;
       }
+      return true;
+    } catch (e) {
+      developer.log("Error requesting permission: $e", name: "NotificationService");
+      return false;
+    }
+  }
 
+  /// Check if notifications are currently enabled on device.
+  Future<bool> areNotificationsEnabled() async {
+    try {
+      final androidPlatform = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+
+      if (androidPlatform != null) {
+        final enabled = await androidPlatform.areNotificationsEnabled();
+        return enabled ?? false;
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Asynchronously request notification permission and schedule reminders.
+  Future<void> _requestPermissionsAndSchedule() async {
+    try {
+      await requestPermission();
       await scheduleDailyReminders();
     } catch (e) {
       developer.log(
@@ -204,14 +234,16 @@ class NotificationService {
         }
       }
 
-      // Notification details configuration
+      // Notification details configuration with HIGH importance & priority
       const notificationDetails = NotificationDetails(
         android: AndroidNotificationDetails(
           _channelId,
           _channelName,
           channelDescription: _channelDescription,
-          importance: Importance.defaultImportance,
-          priority: Priority.defaultPriority,
+          importance: Importance.high,
+          priority: Priority.high,
+          playSound: true,
+          enableVibration: true,
           icon: '@mipmap/ic_launcher',
         ),
         iOS: DarwinNotificationDetails(
@@ -221,7 +253,7 @@ class NotificationService {
         ),
       );
 
-      // Schedule each active reminder
+      // Schedule each active reminder with inexactAllowWhileIdle so it wakes up while idle
       for (final schedule in active) {
         final scheduledDate = _nextInstanceOfTime(schedule.hour, schedule.minute);
 
@@ -231,7 +263,7 @@ class NotificationService {
           body: schedule.body,
           scheduledDate: scheduledDate,
           notificationDetails: notificationDetails,
-          androidScheduleMode: AndroidScheduleMode.inexact,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
           matchDateTimeComponents: DateTimeComponents.time,
         );
       }
@@ -282,7 +314,7 @@ class NotificationService {
     }
   }
 
-  /// Trigger a test notification immediately to verify display and icon.
+  /// Trigger a test notification immediately to verify display, icon, sound, and banner.
   Future<void> showTestNotification() async {
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
@@ -291,6 +323,8 @@ class NotificationService {
         channelDescription: _channelDescription,
         importance: Importance.high,
         priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
         icon: '@mipmap/ic_launcher',
       ),
     );
@@ -298,9 +332,40 @@ class NotificationService {
     await _notificationsPlugin.show(
       id: 999,
       title: "RedPDF Compress Active 📄",
-      body: "Local notifications are set up and running smoothly!",
+      body: "Local notifications are working perfectly on this device!",
       notificationDetails: details,
     );
+  }
+
+  /// Schedule a test notification [seconds] into the future to verify background firing.
+  Future<void> scheduleSecondsTest(int seconds) async {
+    final scheduledDate = tz.TZDateTime.now(tz.local).add(Duration(seconds: seconds));
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        _channelId,
+        _channelName,
+        channelDescription: _channelDescription,
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+        icon: '@mipmap/ic_launcher',
+      ),
+    );
+
+    await _notificationsPlugin.zonedSchedule(
+      id: 998,
+      title: "Scheduled Reminder Test ⏰",
+      body: "Timer notification fired successfully after $seconds seconds!",
+      scheduledDate: scheduledDate,
+      notificationDetails: details,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+    );
+  }
+
+  /// Returns list of pending notification requests.
+  Future<List<PendingNotificationRequest>> getPendingNotifications() async {
+    return await _notificationsPlugin.pendingNotificationRequests();
   }
 
   void _onNotificationTapped(NotificationResponse response) {

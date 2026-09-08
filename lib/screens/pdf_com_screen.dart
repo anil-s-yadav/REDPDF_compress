@@ -303,8 +303,9 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
               );
             }
 
-            if (savedPath == null)
+            if (savedPath == null) {
               throw Exception("Failed to save to device storage");
+            }
             File savedFile = File(savedPath);
 
             final saved = savedFile;

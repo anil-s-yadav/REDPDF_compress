@@ -307,7 +307,7 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
                 outFileName,
                 mime,
               );
-              savedPath = doc?.uri;
+              savedPath = doc.uri;
             } else {
               savedPath = await MediaStoreHelper.saveFileToDownloads(
                 tempFilePath: tempFile.path,

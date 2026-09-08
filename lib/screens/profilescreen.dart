@@ -338,7 +338,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  /// 🔹 Section Title
+  /// Section Title
   Widget _sectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
