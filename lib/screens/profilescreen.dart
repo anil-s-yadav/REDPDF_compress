@@ -6,9 +6,70 @@ import 'package:url_launcher/url_launcher.dart';
 // import 'package:sign_pdf_redpdf/theme/app_theme.dart';
 import '../providers/theme_provider.dart';
 import '../providers/settings_provider.dart';
+import '../services/notification_service.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen>
+    with WidgetsBindingObserver {
+  bool _notificationsEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkNotificationStatus();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkNotificationStatus();
+    }
+  }
+
+  Future<void> _checkNotificationStatus() async {
+    final enabled =
+        await NotificationService.instance.areNotificationsEnabled();
+    if (enabled && !_notificationsEnabled) {
+      // Re-enable schedules if they were restored
+      NotificationService.instance.scheduleDailyReminders(force: true);
+    }
+    if (mounted && _notificationsEnabled != enabled) {
+      setState(() {
+        _notificationsEnabled = enabled;
+      });
+    }
+  }
+
+  Future<void> _enableNotifications() async {
+    final granted = await NotificationService.instance.requestPermission();
+    if (granted) {
+      await NotificationService.instance.scheduleDailyReminders(force: true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Notifications enabled!"),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } else {
+      await NotificationService.instance.openNotificationSettings();
+    }
+    await _checkNotificationStatus();
+  }
 
   Future<void> _launchUrl(String url) async {
     Uri uri = Uri.parse(url);
@@ -214,12 +275,52 @@ class ProfileScreen extends StatelessWidget {
                       );
                     },
                   ),
-                  // SwitchListTile(
-                  //   value: true,
-                  //   onChanged: (v) {},
-                  //   title: const Text("Notifications"),
-                  //   secondary: const Icon(Icons.notifications),
-                  // ),
+                  if (!_notificationsEnabled)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 5),
+                      child: ListTile(
+                        onTap: _enableNotifications,
+                        leading: Container(
+                          height: 50,
+                          width: 50,
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: Colors.orange.withAlpha(30),
+                          ),
+                          child: const Icon(
+                            Icons.notifications_off_rounded,
+                            color: Colors.orange,
+                          ),
+                        ),
+                        title: const Text(
+                          "Enable Notifications",
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: const Text(
+                          "Turn on to receive daily reminders & updates",
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: color.primary,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Text(
+                            "Enable",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),

@@ -65,29 +65,53 @@ class _NavigationPageState extends State<NavigationPage>
 
   @override
   Widget build(BuildContext context) {
-    // final theme = Theme.of(context).colorScheme;
-    final appColors = AppThemeColors.pdfLight;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final appColors = isDark ? AppThemeColors.pdfDark : AppThemeColors.pdfLight;
 
     return Scaffold(
-      // backgroundColor: appColors.primary,
+      backgroundColor: appColors.bg,
       body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: appColors.bg,
-        elevation: 5,
-        selectedItemColor: appColors.primary,
-        unselectedItemColor: Colors.grey,
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        showSelectedLabels: true,
-        showUnselectedLabels: true,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.folder), label: 'Files'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "PROFILE"),
-        ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: isDark ? appColors.card : appColors.bg,
+          border: Border(
+            top: BorderSide(
+              color: isDark
+                  ? Colors.white.withAlpha(15)
+                  : Colors.black.withAlpha(12),
+              width: 1,
+            ),
+          ),
+        ),
+        child: BottomNavigationBar(
+          backgroundColor: isDark ? appColors.card : appColors.bg,
+          elevation: 0,
+          selectedItemColor: appColors.primary,
+          unselectedItemColor: isDark ? Colors.white54 : Colors.black45,
+          selectedFontSize: 12,
+          unselectedFontSize: 12,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+          showSelectedLabels: true,
+          showUnselectedLabels: true,
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          type: BottomNavigationBarType.fixed,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_rounded),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.folder_rounded),
+              label: 'Files',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_rounded),
+              label: 'Profile',
+            ),
+          ],
+        ),
       ),
     );
   }

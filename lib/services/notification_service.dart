@@ -1,6 +1,6 @@
 import 'dart:developer' as developer;
-import 'dart:ui';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -31,7 +31,7 @@ class NotificationService {
   NotificationService._();
   static final NotificationService instance = NotificationService._();
 
-  static const bool isProduction = false;
+  static const bool isProduction = true;
 
   static const String _channelId = 'redpdf_daily_reminders';
   static const String _channelName = 'Daily Reminders';
@@ -220,6 +220,22 @@ class NotificationService {
     }
   }
 
+  static const MethodChannel _platformChannel = MethodChannel(
+    'com.legendarysoftware.compress_pdf_redpdf/media_store',
+  );
+
+  /// Opens system notification settings for this app.
+  Future<void> openNotificationSettings() async {
+    try {
+      await _platformChannel.invokeMethod('openNotificationSettings');
+    } catch (e) {
+      developer.log(
+        "Failed to open notification settings: $e",
+        name: "NotificationService",
+      );
+    }
+  }
+
   /// Asynchronously request notification permission and schedule reminders.
   Future<void> _requestPermissionsAndSchedule() async {
     try {
@@ -255,6 +271,8 @@ class NotificationService {
           await _notificationsPlugin.cancel(id: schedule.id);
         }
       }
+      await _notificationsPlugin.cancel(id: 999);
+      await _notificationsPlugin.cancel(id: 998);
 
       // Notification details configuration with HIGH importance & priority
       const notificationDetails = NotificationDetails(

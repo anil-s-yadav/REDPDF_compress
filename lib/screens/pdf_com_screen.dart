@@ -120,7 +120,9 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
     });
   }
 
-  Future<String?> _showPasswordDialog({String hint = 'Enter PDF password to unlock'}) async {
+  Future<String?> _showPasswordDialog({
+    String hint = 'Enter PDF password to unlock',
+  }) async {
     String? password;
     return showDialog<String>(
       context: context,
@@ -133,9 +135,7 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
           title: const Text('Password Protected'),
           content: TextField(
             obscureText: true,
-            decoration: InputDecoration(
-              hintText: hint,
-            ),
+            decoration: InputDecoration(hintText: hint),
             onChanged: (value) {
               password = value;
             },
@@ -203,11 +203,8 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PdfViewScreen(
-          title: name,
-          path: file.path,
-          password: password,
-        ),
+        builder: (context) =>
+            PdfViewScreen(title: name, path: file.path, password: password),
       ),
     );
   }
@@ -385,6 +382,7 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
               title: 'PDF compressed',
               subtitle: 'Saved to your device.',
               filePath: saved.path,
+              previewPath: outFile.path,
               isPdf: true,
               beforeBytes: beforeBytes,
               afterBytes: afterBytes,
@@ -414,17 +412,17 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
             // ── Scrollable Content ──
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                padding: const EdgeInsets.fromLTRB(20, 3, 20, 80),
                 child: Column(
                   children: [
                     _fileCard(colors, isDark),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 15),
                     _modeToggle(colors, isDark),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 15),
                     _useTargetSize
                         ? _targetSizeInput(colors, isDark)
                         : _compressionSlider(colors, isDark),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 15),
                     _outputNameInput(colors, isDark),
                     // const SizedBox(height: 20),
                     // _compressButton(colors),
@@ -515,7 +513,9 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
         color: colors.card,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: isDark ? Colors.white.withAlpha(18) : colors.primary.withAlpha(22),
+          color: isDark
+              ? Colors.white.withAlpha(18)
+              : colors.primary.withAlpha(22),
           width: 1.2,
         ),
         boxShadow: [
@@ -743,7 +743,9 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
         color: isDark ? Colors.white.withAlpha(12) : const Color(0xFFECE7E6),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? Colors.white.withAlpha(15) : Colors.black.withAlpha(10),
+          color: isDark
+              ? Colors.white.withAlpha(15)
+              : Colors.black.withAlpha(10),
         ),
       ),
       child: TabBar(
@@ -809,7 +811,9 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
         color: colors.card,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: isDark ? Colors.white.withAlpha(18) : colors.primary.withAlpha(22),
+          color: isDark
+              ? Colors.white.withAlpha(18)
+              : colors.primary.withAlpha(22),
           width: 1.2,
         ),
         boxShadow: [
@@ -978,7 +982,9 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
         color: colors.card,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: isDark ? Colors.white.withAlpha(18) : colors.primary.withAlpha(22),
+          color: isDark
+              ? Colors.white.withAlpha(18)
+              : colors.primary.withAlpha(22),
           width: 1.2,
         ),
         boxShadow: [
@@ -1015,7 +1021,10 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
                     decimal: true,
                   ),
                   onChanged: (val) => setState(() {}),
-                  style: TextStyle(color: colors.text, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    color: colors.text,
+                    fontWeight: FontWeight.w500,
+                  ),
                   decoration: InputDecoration(
                     hintText: "Enter target size...",
                     hintStyle: TextStyle(color: colors.text.withAlpha(90)),
@@ -1038,10 +1047,7 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: colors.primary,
-                        width: 1.8,
-                      ),
+                      borderSide: BorderSide(color: colors.primary, width: 1.8),
                     ),
                   ),
                 ),
@@ -1113,7 +1119,9 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
         color: colors.card,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: isDark ? Colors.white.withAlpha(18) : colors.primary.withAlpha(22),
+          color: isDark
+              ? Colors.white.withAlpha(18)
+              : colors.primary.withAlpha(22),
           width: 1.2,
         ),
         boxShadow: [
@@ -1135,11 +1143,7 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
         children: [
           Row(
             children: [
-              Icon(
-                Icons.edit_rounded,
-                size: 16,
-                color: colors.primary,
-              ),
+              Icon(Icons.edit_rounded, size: 16, color: colors.primary),
               const SizedBox(width: 8),
               Text(
                 "Output File Name",
@@ -1197,10 +1201,7 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(
-                  color: colors.primary,
-                  width: 1.8,
-                ),
+                borderSide: BorderSide(color: colors.primary, width: 1.8),
               ),
             ),
           ),
