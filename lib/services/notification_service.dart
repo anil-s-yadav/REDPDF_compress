@@ -52,9 +52,18 @@ class NotificationService {
   static const List<ReminderSchedule> _allSchedules = [
     ReminderSchedule(
       id: 101,
+      hour: 6,
+      minute: 0,
+      title: "Compress PDF - REDPDF",
+      body:
+          "Got heavy PDFs or photos? Compress them in seconds to save phone storage.",
+      isProductionEnabled: true, // 9:00 AM (Active in both dev and prod)
+    ),
+    ReminderSchedule(
+      id: 101,
       hour: 9,
       minute: 0,
-      title: "Start Your Day Light! 📄",
+      title: "Compress PDF - REDPDF",
       body:
           "Got heavy PDFs or photos? Compress them in seconds to save phone storage.",
       isProductionEnabled: true, // 9:00 AM (Active in both dev and prod)
@@ -63,7 +72,7 @@ class NotificationService {
       id: 102,
       hour: 13,
       minute: 0,
-      title: "Need to Send Documents? 🚀",
+      title: "Compress PDF - REDPDF",
       body:
           "Shrink large PDFs and images quickly for instant sharing on WhatsApp & Email.",
       isProductionEnabled: false, // 1:00 PM (Dev only)
@@ -72,16 +81,25 @@ class NotificationService {
       id: 103,
       hour: 17,
       minute: 0,
-      title: "Clean Up Phone Storage 💾",
+      title: "Compress PDF - REDPDF",
       body:
           "Free up storage by compressing recent downloads and camera captures.",
       isProductionEnabled: false, // 5:00 PM (Dev only)
     ),
     ReminderSchedule(
       id: 104,
+      hour: 20,
+      minute: 0,
+      title: "Compress PDF - REDPDF",
+      body:
+          "All files organized? Compress and archive your heavy files before winding down.",
+      isProductionEnabled: true, // 10:00 PM (Active in both dev and prod)
+    ),
+    ReminderSchedule(
+      id: 104,
       hour: 22,
       minute: 0,
-      title: "Wrap Up Your Day 🌙",
+      title: "Compress PDF - REDPDF",
       body:
           "All files organized? Compress and archive your heavy files before winding down.",
       isProductionEnabled: true, // 10:00 PM (Active in both dev and prod)
@@ -114,8 +132,9 @@ class NotificationService {
       }
 
       // 2. Setup initialization settings
-      const androidSettings =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const androidSettings = AndroidInitializationSettings(
+        '@mipmap/ic_launcher',
+      );
       const darwinSettings = DarwinInitializationSettings(
         requestAlertPermission: false,
         requestBadgePermission: false,
@@ -135,7 +154,8 @@ class NotificationService {
       // 3. Create high-importance notification channel for Android
       final androidPlatform = _notificationsPlugin
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+            AndroidFlutterLocalNotificationsPlugin
+          >();
 
       if (androidPlatform != null) {
         const channel = AndroidNotificationChannel(
@@ -168,7 +188,8 @@ class NotificationService {
     try {
       final androidPlatform = _notificationsPlugin
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+            AndroidFlutterLocalNotificationsPlugin
+          >();
 
       if (androidPlatform != null) {
         final granted = await androidPlatform.requestNotificationsPermission();
@@ -176,7 +197,10 @@ class NotificationService {
       }
       return true;
     } catch (e) {
-      developer.log("Error requesting permission: $e", name: "NotificationService");
+      developer.log(
+        "Error requesting permission: $e",
+        name: "NotificationService",
+      );
       return false;
     }
   }
@@ -186,7 +210,8 @@ class NotificationService {
     try {
       final androidPlatform = _notificationsPlugin
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+            AndroidFlutterLocalNotificationsPlugin
+          >();
 
       if (androidPlatform != null) {
         final enabled = await androidPlatform.areNotificationsEnabled();
@@ -255,7 +280,10 @@ class NotificationService {
 
       // Schedule each active reminder with inexactAllowWhileIdle so it wakes up while idle
       for (final schedule in active) {
-        final scheduledDate = _nextInstanceOfTime(schedule.hour, schedule.minute);
+        final scheduledDate = _nextInstanceOfTime(
+          schedule.hour,
+          schedule.minute,
+        );
 
         await _notificationsPlugin.zonedSchedule(
           id: schedule.id,
@@ -310,7 +338,10 @@ class NotificationService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_prefScheduleKey);
     } catch (e) {
-      developer.log("Error cancelling reminders: $e", name: "NotificationService");
+      developer.log(
+        "Error cancelling reminders: $e",
+        name: "NotificationService",
+      );
     }
   }
 
@@ -331,7 +362,7 @@ class NotificationService {
 
     await _notificationsPlugin.show(
       id: 999,
-      title: "RedPDF Compress Active 📄",
+      title: "Compress PDF - REDPDF",
       body: "Local notifications are working perfectly on this device!",
       notificationDetails: details,
     );
@@ -339,7 +370,9 @@ class NotificationService {
 
   /// Schedule a test notification [seconds] into the future to verify background firing.
   Future<void> scheduleSecondsTest(int seconds) async {
-    final scheduledDate = tz.TZDateTime.now(tz.local).add(Duration(seconds: seconds));
+    final scheduledDate = tz.TZDateTime.now(
+      tz.local,
+    ).add(Duration(seconds: seconds));
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
         _channelId,
@@ -355,7 +388,7 @@ class NotificationService {
 
     await _notificationsPlugin.zonedSchedule(
       id: 998,
-      title: "Scheduled Reminder Test ⏰",
+      title: "Compress PDF - REDPDF",
       body: "Timer notification fired successfully after $seconds seconds!",
       scheduledDate: scheduledDate,
       notificationDetails: details,
