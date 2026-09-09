@@ -93,6 +93,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     subtitleColor: imgColor.text,
                   ),
                 ),
+
+                const SizedBox(height: 20),
+
+                // Simple temporary test button
+                ElevatedButton(
+                  onPressed: () =>
+                      NotificationService.instance.showTestNotification(),
+                  child: const Text("Test Notification"),
+                ),
               ],
             ),
           ),

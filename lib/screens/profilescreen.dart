@@ -224,10 +224,7 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 20),
-
-            /// 📄 LEGAL
-            _sectionTitle("LEGAL"),
+            const SizedBox(height: 5),
 
             _card(
               color.card,
@@ -258,7 +255,10 @@ class ProfileScreen extends StatelessWidget {
                     title: "Rate Us",
                     subtitle: "Love the app? Leave a review!",
                     icon: Icons.star_rounded,
-                    colors: [Colors.amber.shade400, Colors.deepOrange.shade400],
+                    colors: [
+                      const Color(0xFF2563EB), // Vibrant Royal Blue
+                      const Color(0xFF7C3AED), // Rich Deep Purple
+                    ],
                     onTap: () => _launchUrl(
                       "https://play.google.com/store/apps/details?id=com.legendarysoftware.compress_pdf_redpdf",
                     ),

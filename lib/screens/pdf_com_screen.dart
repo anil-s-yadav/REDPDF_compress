@@ -14,6 +14,7 @@ import '../providers/settings_provider.dart';
 import '../providers/history_provider.dart';
 import '../models/compression_history_item.dart';
 import 'package:pdf_manipulator/pdf_manipulator.dart';
+import 'package:compress_pdf_redpdf/screens/pdf_view_screen.dart';
 
 class CompressPdfScreen extends StatefulWidget {
   final File? initialFile;
@@ -119,7 +120,7 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
     });
   }
 
-  Future<String?> _showPasswordDialog() async {
+  Future<String?> _showPasswordDialog({String hint = 'Enter PDF password to unlock'}) async {
     String? password;
     return showDialog<String>(
       context: context,
@@ -132,8 +133,8 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
           title: const Text('Password Protected'),
           content: TextField(
             obscureText: true,
-            decoration: const InputDecoration(
-              hintText: 'Enter PDF password to unlock',
+            decoration: InputDecoration(
+              hintText: hint,
             ),
             onChanged: (value) {
               password = value;
@@ -151,6 +152,63 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
           ],
         );
       },
+    );
+  }
+
+  Future<void> _viewSelectedPdf() async {
+    final file = _selectedPdf;
+    if (file == null) return;
+
+    if (!await file.exists()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selected PDF file not found.')),
+      );
+      return;
+    }
+
+    final name = file.uri.pathSegments.isNotEmpty
+        ? file.uri.pathSegments.last
+        : 'PDF Document';
+
+    bool isProtected = false;
+    try {
+      final protectionInfo = await PdfManipulator().pdfValidityAndProtection(
+        params: PDFValidityAndProtectionParams(pdfPath: file.path),
+      );
+      if (protectionInfo != null &&
+          (protectionInfo.isOpenPasswordProtected == true ||
+              protectionInfo.isOwnerPasswordProtected == true)) {
+        isProtected = true;
+      }
+    } catch (_) {}
+
+    String? password;
+    if (isProtected) {
+      if (!mounted) return;
+      password = await _showPasswordDialog(hint: 'Enter PDF password to view');
+      if (password == null || password.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Password is required to view this PDF.'),
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PdfViewScreen(
+          title: name,
+          path: file.path,
+          password: password,
+        ),
+      ),
     );
   }
 
@@ -424,21 +482,20 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
               ),
             ),
           ),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  colors.primary.withAlpha(30),
-                  colors.primary.withAlpha(15),
-                ],
+          GestureDetector(
+            onTap: _pickPdf,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: Text(
+                "Reselect",
+                style: TextStyle(
+                  color: colors.primary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
+                ),
               ),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(
-              Icons.picture_as_pdf_rounded,
-              size: 22,
-              color: colors.primary,
             ),
           ),
         ],
@@ -458,13 +515,19 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
         color: colors.card,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: isDark ? Colors.white.withAlpha(8) : Colors.black.withAlpha(6),
+          color: isDark ? Colors.white.withAlpha(18) : colors.primary.withAlpha(22),
+          width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: colors.primary.withAlpha(isDark ? 10 : 12),
+            color: colors.primary.withAlpha(isDark ? 15 : 12),
             blurRadius: 16,
             offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 30 : 6),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -492,76 +555,64 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
             ],
           ),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              // PDF icon
-              Container(
-                height: 52,
-                width: 52,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      colors.primary.withAlpha(35),
-                      colors.primary.withAlpha(18),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: colors.primary.withAlpha(25)),
-                ),
-                child: Icon(
-                  Icons.picture_as_pdf_rounded,
-                  color: colors.primary,
-                  size: 26,
-                ),
-              ),
-              const SizedBox(width: 14),
-              // File info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                        color: colors.text,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      bytes == null
-                          ? "Tap to select a PDF"
-                          : _formatBytes(bytes),
-                      style: TextStyle(
-                        color: colors.text.withAlpha(100),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Change button
-              GestureDetector(
-                onTap: _pickPdf,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
+          GestureDetector(
+            onTap: file == null ? _pickPdf : _viewSelectedPdf,
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              children: [
+                // PDF icon
+                Container(
+                  height: 52,
+                  width: 52,
                   decoration: BoxDecoration(
-                    color: colors.primary.withAlpha(15),
-                    borderRadius: BorderRadius.circular(14),
+                    gradient: LinearGradient(
+                      colors: [
+                        colors.primary.withAlpha(35),
+                        colors.primary.withAlpha(18),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: colors.primary.withAlpha(25)),
                   ),
                   child: Icon(
-                    Icons.swap_horiz_rounded,
+                    Icons.picture_as_pdf_rounded,
                     color: colors.primary,
-                    size: 22,
+                    size: 26,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 14),
+                // File info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: colors.text,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        bytes == null
+                            ? "Tap to select a PDF"
+                            : _formatBytes(bytes),
+                        style: TextStyle(
+                          color: colors.text.withAlpha(100),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
 
           // ── Estimated size row ──
@@ -571,14 +622,16 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
               child: _estimatedRow(colors, isDark),
             ),
           ],
-          const SizedBox(width: 14),
+          const SizedBox(height: 10),
           Row(
-            spacing: 10,
             children: [
-              Icon(Icons.info_outline, size: 14, color: Colors.orange),
-              Text(
-                "Output file may be slightly smaller or bigger.",
-                style: TextStyle(fontSize: 11, color: Colors.orange),
+              const Icon(Icons.info_outline, size: 14, color: Colors.orange),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "Output file may be slightly smaller or bigger.",
+                  style: const TextStyle(fontSize: 11, color: Colors.orange),
+                ),
               ),
             ],
           ),
@@ -687,8 +740,11 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
       height: 48,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withAlpha(8) : Colors.black.withAlpha(8),
+        color: isDark ? Colors.white.withAlpha(12) : const Color(0xFFECE7E6),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white.withAlpha(15) : Colors.black.withAlpha(10),
+        ),
       ),
       child: TabBar(
         controller: _modeTabController,
@@ -753,13 +809,19 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
         color: colors.card,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: isDark ? Colors.white.withAlpha(8) : Colors.black.withAlpha(6),
+          color: isDark ? Colors.white.withAlpha(18) : colors.primary.withAlpha(22),
+          width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 20 : 5),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: colors.primary.withAlpha(isDark ? 15 : 10),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 30 : 6),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -916,13 +978,19 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
         color: colors.card,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: isDark ? Colors.white.withAlpha(8) : Colors.black.withAlpha(6),
+          color: isDark ? Colors.white.withAlpha(18) : colors.primary.withAlpha(22),
+          width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 20 : 5),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: colors.primary.withAlpha(isDark ? 15 : 10),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 30 : 6),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -947,21 +1015,33 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
                     decimal: true,
                   ),
                   onChanged: (val) => setState(() {}),
-                  style: TextStyle(color: colors.text),
+                  style: TextStyle(color: colors.text, fontWeight: FontWeight.w500),
                   decoration: InputDecoration(
                     hintText: "Enter target size...",
-                    hintStyle: TextStyle(color: colors.text.withAlpha(80)),
+                    hintStyle: TextStyle(color: colors.text.withAlpha(90)),
                     filled: true,
                     fillColor: isDark
-                        ? Colors.white.withAlpha(8)
-                        : Colors.black.withAlpha(6),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
-                    ),
+                        ? Colors.white.withAlpha(12)
+                        : const Color(0xFFF6F8FC),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 14,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? Colors.white.withAlpha(20)
+                            : colors.primary.withAlpha(30),
+                        width: 1.2,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: colors.primary,
+                        width: 1.8,
+                      ),
                     ),
                   ),
                 ),
@@ -971,9 +1051,15 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.white.withAlpha(8)
-                      : Colors.black.withAlpha(6),
+                      ? Colors.white.withAlpha(12)
+                      : const Color(0xFFF6F8FC),
                   borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withAlpha(20)
+                        : colors.primary.withAlpha(30),
+                    width: 1.2,
+                  ),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
@@ -1027,8 +1113,21 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
         color: colors.card,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: isDark ? Colors.white.withAlpha(8) : Colors.black.withAlpha(6),
+          color: isDark ? Colors.white.withAlpha(18) : colors.primary.withAlpha(22),
+          width: 1.2,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: colors.primary.withAlpha(isDark ? 15 : 10),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 30 : 6),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         spacing: 10,
@@ -1039,7 +1138,7 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
               Icon(
                 Icons.edit_rounded,
                 size: 16,
-                color: colors.text.withAlpha(120),
+                color: colors.primary,
               ),
               const SizedBox(width: 8),
               Text(
@@ -1063,24 +1162,45 @@ class _CompressPdfScreenState extends State<CompressPdfScreen>
 
           TextField(
             controller: _outputNameCtrl,
-            style: TextStyle(color: colors.text, fontSize: 14),
+            style: TextStyle(
+              color: colors.text,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
             decoration: InputDecoration(
+              prefixIcon: Icon(
+                Icons.edit_note_rounded,
+                color: colors.primary,
+                size: 22,
+              ),
               hintText: "e.g. MyCompressedFile",
               hintStyle: TextStyle(
-                color: colors.text.withAlpha(80),
+                color: colors.text.withAlpha(90),
                 fontSize: 14,
               ),
               filled: true,
               fillColor: isDark
-                  ? Colors.white.withAlpha(8)
-                  : Colors.black.withAlpha(6),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
+                  ? Colors.white.withAlpha(12)
+                  : const Color(0xFFF6F8FC),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
-                vertical: 12,
+                vertical: 14,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: isDark
+                      ? Colors.white.withAlpha(20)
+                      : colors.primary.withAlpha(30),
+                  width: 1.2,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: colors.primary,
+                  width: 1.8,
+                ),
               ),
             ),
           ),

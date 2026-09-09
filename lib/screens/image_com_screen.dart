@@ -512,11 +512,41 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
                           ),
                         ),
                       )
-                    : Image.file(
-                        file,
-                        height: 200,
-                        width: 200,
-                        fit: BoxFit.cover,
+                    : GestureDetector(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => Dialog(
+                              backgroundColor: Colors.black.withAlpha(220),
+                              insetPadding: const EdgeInsets.all(12),
+                              child: Stack(
+                                alignment: Alignment.topRight,
+                                children: [
+                                  Center(
+                                    child: InteractiveViewer(
+                                      maxScale: 4.0,
+                                      child: Image.file(file),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 28,
+                                    ),
+                                    onPressed: () => Navigator.pop(ctx),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                        child: Image.file(
+                          file,
+                          height: 200,
+                          width: 200,
+                          fit: BoxFit.cover,
+                        ),
                       ),
               ),
               Positioned(

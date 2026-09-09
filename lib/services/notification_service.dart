@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -30,10 +31,6 @@ class NotificationService {
   NotificationService._();
   static final NotificationService instance = NotificationService._();
 
-  /// ⚙️ PRODUCTION TOGGLE:
-  /// Set to [true] when publishing to Google Play Store.
-  /// When [true], only 9:00 AM and 10:00 PM notifications are scheduled.
-  /// When [false], all 4 notifications (9 AM, 1 PM, 5 PM, 10 PM) are scheduled.
   static const bool isProduction = false;
 
   static const String _channelId = 'redpdf_daily_reminders';
@@ -133,7 +130,7 @@ class NotificationService {
 
       // 2. Setup initialization settings
       const androidSettings = AndroidInitializationSettings(
-        '@mipmap/ic_launcher',
+        '@drawable/ic_notification',
       );
       const darwinSettings = DarwinInitializationSettings(
         requestAlertPermission: false,
@@ -269,7 +266,8 @@ class NotificationService {
           priority: Priority.high,
           playSound: true,
           enableVibration: true,
-          icon: '@mipmap/ic_launcher',
+          icon: '@drawable/ic_notification',
+          color: Color(0xFFE53935),
         ),
         iOS: DarwinNotificationDetails(
           presentAlert: true,
@@ -356,7 +354,8 @@ class NotificationService {
         priority: Priority.high,
         playSound: true,
         enableVibration: true,
-        icon: '@mipmap/ic_launcher',
+        icon: '@drawable/ic_notification',
+        color: Color(0xFFE53935),
       ),
     );
 
@@ -382,7 +381,8 @@ class NotificationService {
         priority: Priority.high,
         playSound: true,
         enableVibration: true,
-        icon: '@mipmap/ic_launcher',
+        icon: '@drawable/ic_notification',
+        color: Color(0xFFE53935),
       ),
     );
 
