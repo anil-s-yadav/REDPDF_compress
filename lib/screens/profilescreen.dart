@@ -381,7 +381,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             // ),
             const SizedBox(height: 10),
             Text(
-              "VERSION 1.1.2 (15) • A Product by - REDPDF",
+              "VERSION 2.0.0 (16) • A Product by - REDPDF",
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
             const SizedBox(height: 20),
