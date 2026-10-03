@@ -32,6 +32,9 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+key.properties
+upload-keystore.jks
+upload-certificate.pem
 
 # Symbolication related
 app.*.symbols
