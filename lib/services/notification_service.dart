@@ -38,68 +38,23 @@ class NotificationService {
   static const String _channelDescription =
       'Friendly reminders to compress and organize PDFs & photos';
   static const String _prefScheduleKey = 'redpdf_notification_schedule_version';
-  static const int _scheduleVersion = 1;
+  static const int _scheduleVersion = 2;
 
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
   bool _isInitialized = false;
 
-  /// All configured reminder times.
+  /// All configured reminder times - single evening reminder at 7:00 PM (19:00).
   static const List<ReminderSchedule> _allSchedules = [
     ReminderSchedule(
       id: 101,
-      hour: 6,
+      hour: 19,
       minute: 0,
       title: "Compress PDF - REDPDF",
       body:
           "Got heavy PDFs or photos? Compress them in seconds to save phone storage.",
-      isProductionEnabled: true, // 9:00 AM (Active in both dev and prod)
-    ),
-    ReminderSchedule(
-      id: 101,
-      hour: 9,
-      minute: 0,
-      title: "Compress PDF - REDPDF",
-      body:
-          "Got heavy PDFs or photos? Compress them in seconds to save phone storage.",
-      isProductionEnabled: true, // 9:00 AM (Active in both dev and prod)
-    ),
-    ReminderSchedule(
-      id: 102,
-      hour: 13,
-      minute: 0,
-      title: "Compress PDF - REDPDF",
-      body:
-          "Shrink large PDFs and images quickly for instant sharing on WhatsApp & Email.",
-      isProductionEnabled: false, // 1:00 PM (Dev only)
-    ),
-    ReminderSchedule(
-      id: 103,
-      hour: 17,
-      minute: 0,
-      title: "Compress PDF - REDPDF",
-      body:
-          "Free up storage by compressing recent downloads and camera captures.",
-      isProductionEnabled: false, // 5:00 PM (Dev only)
-    ),
-    ReminderSchedule(
-      id: 104,
-      hour: 20,
-      minute: 0,
-      title: "Compress PDF - REDPDF",
-      body:
-          "All files organized? Compress and archive your heavy files before winding down.",
-      isProductionEnabled: true, // 10:00 PM (Active in both dev and prod)
-    ),
-    ReminderSchedule(
-      id: 104,
-      hour: 22,
-      minute: 0,
-      title: "Compress PDF - REDPDF",
-      body:
-          "All files organized? Compress and archive your heavy files before winding down.",
-      isProductionEnabled: true, // 10:00 PM (Active in both dev and prod)
+      isProductionEnabled: true, // 7:00 PM (Evening)
     ),
   ];
 
@@ -262,17 +217,10 @@ class NotificationService {
         return;
       }
 
-      final active = activeSchedules;
-      final activeIds = active.map((s) => s.id).toSet();
+      // Cancel all existing scheduled notifications so unwanted ones are removed
+      await _notificationsPlugin.cancelAll();
 
-      // Cancel inactive schedules (e.g. 1 PM and 5 PM when in production)
-      for (final schedule in _allSchedules) {
-        if (!activeIds.contains(schedule.id)) {
-          await _notificationsPlugin.cancel(id: schedule.id);
-        }
-      }
-      await _notificationsPlugin.cancel(id: 999);
-      await _notificationsPlugin.cancel(id: 998);
+      final active = activeSchedules;
 
       // Notification details configuration with HIGH importance & priority
       const notificationDetails = NotificationDetails(
@@ -348,9 +296,7 @@ class NotificationService {
   /// Cancels all scheduled reminder notifications.
   Future<void> cancelAllReminders() async {
     try {
-      for (final schedule in _allSchedules) {
-        await _notificationsPlugin.cancel(id: schedule.id);
-      }
+      await _notificationsPlugin.cancelAll();
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_prefScheduleKey);
     } catch (e) {
