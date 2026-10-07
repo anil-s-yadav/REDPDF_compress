@@ -38,23 +38,23 @@ class NotificationService {
   static const String _channelDescription =
       'Friendly reminders to compress and organize PDFs & photos';
   static const String _prefScheduleKey = 'redpdf_notification_schedule_version';
-  static const int _scheduleVersion = 2;
+  static const int _scheduleVersion = 3;
 
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
   bool _isInitialized = false;
 
-  /// All configured reminder times - single evening reminder at 7:00 PM (19:00).
+  /// All configured reminder times - single reminder at 10:00 AM (10:00).
   static const List<ReminderSchedule> _allSchedules = [
     ReminderSchedule(
       id: 101,
-      hour: 19,
+      hour: 10,
       minute: 0,
       title: "Compress PDF - REDPDF",
       body:
           "Got heavy PDFs or photos? Compress them in seconds to save phone storage.",
-      isProductionEnabled: true, // 7:00 PM (Evening)
+      isProductionEnabled: true, // 10:00 AM
     ),
   ];
 
